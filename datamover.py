@@ -58,6 +58,7 @@ def mover(username, src_site, dst_site, dst_dir):
     api.set_debug_print(False, False)
     conditional_activation(site_ep1,site_username)
     conditional_activation(site_ep2,site_username)
+    print "== If asked below, insert the password of your GO account =="
 
     print "=== Prepare transfer ==="
     #raw_input("Press Enter to continue...")
