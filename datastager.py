@@ -9,7 +9,12 @@ import re
 
 import datamover
 
-urlendpoint={'data.repo.cineca.it': "cinecaRepoSingl", 'irods-dev.cineca.it': "irods-dev"}
+urlendpoint={
+    'data.repo.cineca.it': "cinecaRepoSingl",
+    'irods-dev.cineca.it': "irods-dev",
+    'dtn01.hector.ac.uk': "dtn01",
+    'eudat-irodsdev.epcc.ed.ac.uk': "eudat-irodsdev"
+}
 
 def formatter(a,x):
     y='"*'+a+'=\\"'+x+'\\"" '
