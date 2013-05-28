@@ -2,6 +2,8 @@
 
 ./datastager.py out seed -p /CINECA01/home/cin_staff/gmariani/testGO/CINECA01/home/EUDAT_EPOS/EPOSReplica/archive/ -y 2008 -n IV -s CAFR -c HHE -u cin0641a --ss cinecaRepoSingl --ds GSI-PLX --dd /gpfs/scratch/userinternal/cin0641a/DS-Test/
 
+./datastager.py out irods -p /CINECA/home/gmariani/testGO/logo -u cin0641a --ss irods-dev --ds GSI-PLX --dd /gpfs/scratch/userinternal/cin0641a/DS-Test/
+
 ./datastager.py out url --url irods://data.repo.cineca.it:1247/CINECA01/home/EUDAT_EPOS/EPOSReplica/archive/2008/IV/CAFR/HHE.D/IV.CAFR..HHE.D.2008.239 -u cin0641a --ds GSI-PLX --dd /gpfs/scratch/userinternal/cin0641a/DS-Test/
 
 ./datastager.py out url -UF /home/jack/CINECA/SVN/EUDAT/Sandbox/Data-Staging/Island2/url.file.example -u cin0641a --ds GSI-PLX --dd /gpfs/scratch/userinternal/cin0641a/DS-Test/

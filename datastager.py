@@ -36,7 +36,7 @@ def jsonformatter():
     for strg in strglist:
         lista = re.split(r'\s* \s*', strg.rstrip())
         if lista[1] == "None":
-            print "A pid does not exist...!" 
+            print "An argument(pid, url...) does not exist. Continuing anyway!" 
             continue
         sublista = re.split(r'\s*\:\s*', lista[1])
         #print "lista : ", lista
@@ -89,6 +89,41 @@ def seedsource(arguments):
 
     print "SEED: "+argument
     os.system(iPATH+'irule -F seedselecter.r '+argument+' > json_file')
+
+def irodssource(arguments):
+    argument=''
+    if arguments.path:
+        argument = arguments.path
+# Empty the file    
+        open("json_file", 'w').close()
+# Populate it    
+        jsonlist = open("json_file", 'w')
+        path=[]
+        path.append(argument)
+        json_results=json.dumps(path)
+        jsonlist.write(json_results)
+        jsonlist.close
+    elif arguments.pathfile:
+        fo = open(arguments.pathfile, "r")
+        irodslist = fo.readlines();
+        fo.close()
+# Empty the file    
+        open("json_file", 'w').close()
+# Populate it    
+        jsonlist = open("json_file", 'w')
+        path=[]
+        for ifile in irodslist:
+            path.append(ifile.rstrip())
+        json_results=json.dumps(path)
+        jsonlist.write(json_results)
+        jsonlist.close
+ 
+    else: 
+        print "You selected irods so one between path and pathFile is required"
+        sys.exit(1)
+    if arguments.user is None:
+        print " The username is mandatory! "
+        sys.exit(1)
 
 def pidsource(arguments):
     if arguments.pid:
@@ -154,6 +189,10 @@ def urlsource(arguments):
 def details():
     print """
 Invoke as follow for stage out: 
+./datastager.py out irods -p path  
+                          -u GO-user 
+                          --ss source-end-point --ds dest-end-point --dd dest-dir
+or
 ./datastager.py out seed -p path -y year -n network -s station -c channel 
                          -u GO-user 
                          --ss source-end-point --ds dest-end-point --dd dest-dir
@@ -184,6 +223,7 @@ parser = argparse.ArgumentParser(description=" Data stager: move a bounce of dat
         formatter_class=RawTextHelpFormatter)
 taskgroup = parser.add_argument_group('taskid', 'Options specific to stage in taskid')
 seedgroup = parser.add_argument_group('seed', 'Options specific to seed')
+irodsgroup = parser.add_argument_group('irods', 'Options specific to irods')
 urlgroup = parser.add_argument_group('url', 'Options specific to url (mutually exclusive)')
 pidgroup = parser.add_argument_group('pid', 'Options specific to pid (mutually exclusive)')
 # Examples
@@ -191,10 +231,12 @@ parser.add_argument("-d", "--details", help="a longer description and some usage
 # Stage in or stage out
 parser.add_argument("direction",choices=['in','out'],default="NULL",help=" the direction of the stage: in or out")
 # Kind of source: seed, url or PID
-parser.add_argument("kind",choices=['seed','pid','url','taskid'],default="NULL",help=" the description of your data")
+parser.add_argument("kind",choices=['seed','irods','pid','url','taskid'],default="NULL",help=" the description of your data")
 # General informations
-parser.add_argument("-p", "--path", help="the path of your iRODS collection if staging out or the local file name if staging in", 
+parser.add_argument("-p", "--path", help="the path of your file (iRODS collection or local file system depending on the circumstances)", 
         action="store", dest="path")
+parser.add_argument("-pF", "--pathFile", help="the file listing your files (alternative to -p)",
+        action="store", dest="pathfile")
 parser.add_argument("-u", "--username", help="your username on globusonline.org", action="store",
         dest="user")
 # SEED informations
@@ -206,6 +248,8 @@ seedgroup.add_argument("-c", "--channel", help="the channel of interest",
         action="store", dest="channel")
 seedgroup.add_argument("-s", "--station", help="the station of interest", action="store",
         dest="station")
+# iRODS informations
+
 # PID
 pidgroup.add_argument("-P", "--pid", help="the PID of your data",
         action="store", dest="pid")
@@ -219,8 +263,6 @@ urlgroup.add_argument("-UF", "--urlfile", help="the file listing the URL(s) of y
 # TaskID
 taskgroup.add_argument("-t", "--taskid", help="the taskID of your transfer",
         action="store", dest="taskid")
-taskgroup.add_argument("-pF", "--pathFile", help="the file listing your files (alternative to -p)",
-        action="store", dest="pathfile")
 # Servers infromations
 parser.add_argument("--ss", help="the GridFTP src server as GO endpoint", action="store",
         dest="src_site", default="irods-dev")
@@ -276,18 +318,28 @@ if arguments.direction == "out":
     if arguments.kind == "seed":
         seedsource(arguments)
         print "Source end-point: "+arguments.src_site
+        #sys.exit(1) 
+    elif arguments.kind == "irods":
+        if arguments.path and arguments.pathfile:
+            print "Only one between -p and -pF is allowed"
+            sys.exit(1)
+        irodssource(arguments)
+        print "Source end-point: "+arguments.src_site
+        #sys.exit(1) 
     elif arguments.kind == "url":
         if arguments.url and arguments.urlfile:
             print "Only one between -U and -UF is allowed"
             sys.exit(1)
         arguments.src_site=urlsource(arguments)
         print "Source end-point: "+arguments.src_site
+        #sys.exit(1) 
     elif arguments.kind == "pid":
         if arguments.pid and arguments.pidfile:
             print "Only one between -P and -PF is allowed"
             sys.exit(1)
         arguments.src_site=pidsource(arguments)
         print "Source end-point: "+arguments.src_site
+        #sys.exit(1) 
     else:
         print "You are staging out so you can only specify seed or PID or URL!"
         sys.exit(1)
