@@ -29,6 +29,7 @@ import re, sys
 from globusonline.transfer.api_client import Transfer, create_client_from_args
 from globusonline.transfer.api_client import ActivationRequirementList
 from globusonline.transfer.api_client import TransferAPIClient
+from globusonline.transfer.api_client import x509_proxy
 
 
 # TransferAPIClient instance.
@@ -47,6 +48,7 @@ def mover(username, src_site, dst_site, dst_dir):
     user_credential_path=os.getcwd()+"/credential.pem"
     print "user_credential_path=",user_credential_path
     api = TransferAPIClient(username, cert_file=user_credential_path)
+    api.set_debug_print(False, False)
     #print " Here (mover): ",api.task_list()
     # See what is in the account before we make any submissions.
     print "=== Before transfer ==="
@@ -55,15 +57,38 @@ def mover(username, src_site, dst_site, dst_dir):
     #display_endpoint_list(); print
 
     print "=== Activate endpoints ==="
-    print "== If asked below, insert the password of your myproxy server =="
-    print "== If asked after two \"Activating EP\" strings, insert the password of your GO account =="
-    site_ep1 = src_site
-    site_ep2 = dst_site
+    #print "== If asked below, insert the password of your myproxy server =="
+    #print "== If asked after two \"Activating EP\" strings, insert the password of your GO account =="
     site_username = username
     dest_directory= dst_dir
-    api.set_debug_print(False, False)
-    conditional_activation(site_ep1,site_username)
-    conditional_activation(site_ep2,site_username)
+    site_ep1 = src_site
+    site_ep2 = dst_site
+
+    _, _, reqs = api.endpoint_activation_requirements(site_ep1, type="delegate_proxy")
+    print "site_ep1"
+    print reqs
+    public_key = reqs.get_requirement_value("delegate_proxy", "public_key")
+    print public_key
+    proxy = x509_proxy.create_proxy_from_file(user_credential_path, public_key)
+    print proxy
+    reqs.set_requirement_value("delegate_proxy", "proxy_chain", proxy)
+    print reqs
+    result = api.endpoint_activate(site_ep1, reqs)
+    print result
+
+    _, _, reqs = api.endpoint_activation_requirements(site_ep2, type="delegate_proxy")
+    print "site_ep2"
+    print reqs
+    public_key = reqs.get_requirement_value("delegate_proxy", "public_key")
+    print public_key
+    proxy = x509_proxy.create_proxy_from_file(user_credential_path, public_key)
+    reqs.set_requirement_value("delegate_proxy", "proxy_chain", proxy)
+    print reqs
+    result = api.endpoint_activate(site_ep2, reqs)
+    print result
+
+    #conditional_activation(site_ep1,site_username)
+    #conditional_activation(site_ep2,site_username)
 
     print "=== Prepare transfer ==="
     #raw_input("Press Enter to continue...")
