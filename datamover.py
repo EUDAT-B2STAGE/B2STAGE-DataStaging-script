@@ -28,6 +28,8 @@ import re, sys
 
 from globusonline.transfer.api_client import Transfer, create_client_from_args
 from globusonline.transfer.api_client import ActivationRequirementList
+from globusonline.transfer.api_client import TransferAPIClient
+
 
 # TransferAPIClient instance.
 api = None
@@ -39,9 +41,12 @@ def mover(username, src_site, dst_site, dst_dir):
 
     Uses module global API client instance.
     """
-    activer=[username,"-c",os.getcwd()+"/credential.pem"]
     global api
-    api, _ = create_client_from_args(activer)
+    #activer=[username,"-c",os.getcwd()+"/credential.pem"]
+    #api, _ = create_client_from_args(activer)
+    user_credential_path=os.getcwd()+"/credential.pem"
+    print "user_credential_path=",user_credential_path
+    api = TransferAPIClient(username, cert_file=user_credential_path)
     #print " Here (mover): ",api.task_list()
     # See what is in the account before we make any submissions.
     print "=== Before transfer ==="
