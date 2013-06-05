@@ -9,6 +9,8 @@ import re
 
 import datamover
 
+iPATH='/home/jack/CINECA/GridTools/iRODS/iRODS/clients/icommands/bin/'
+
 urlendpoint={
     'data.repo.cineca.it': "cinecaRepoSingl",
     'irods-dev.cineca.it': "irods-dev",
@@ -92,8 +94,8 @@ def seedsource(arguments):
         print " The username is mandatory! "
         sys.exit(1)
 
-    print "SEED: "+argument
-    os.system(iPATH+'irule -F seedselecter.r '+argument+' > json_file')
+    #print "SEED: "+argument
+    os.system(iPATH+'/irule -F seedselecter.r '+argument+' > json_file')
 
 def irodssource(arguments):
     argument=''
@@ -133,8 +135,8 @@ def irodssource(arguments):
 def pidsource(arguments):
     if arguments.pid:
         argument=formatter("pid",arguments.pid.rstrip())
-        print "PID: "+argument
-        os.system(iPATH+'irule -F URLselecter.r '+argument+' > json_file')
+        #print "PID: "+argument
+        os.system(iPATH+'/irule -F URLselecter.r '+argument+' > json_file')
         sslist=jsonformatter()
         return sslist[0]
     elif arguments.pidfile:
@@ -145,10 +147,10 @@ def pidsource(arguments):
         open("json_file", 'w').close()
 # Populate it    
         for pid in pidlist:
-            print "pid: "+pid
+            #print "pid: "+pid
             argument=formatter("pid",pid.rstrip())
-            print "pid: "+argument
-            os.system(iPATH+'irule -F URLselecter.r '+argument+' >> json_file')
+            #print "pid: "+argument
+            os.system(iPATH+'/irule -F URLselecter.r '+argument+' >> json_file')
         sslist = jsonformatter()
         if not all_same(sslist):
             print "All the pid should be mapped to the same GO endpoint"
@@ -161,15 +163,15 @@ def pidsource(arguments):
 def urlsource(arguments):
     if arguments.url:
         argument=formatter("url",arguments.url)
-        print "URL: "+argument
-        os.system(iPATH+'irule -F PIDselecter.r '+argument+' > json_file')
+        #print "URL: "+argument
+        os.system(iPATH+'/irule -F PIDselecter.r '+argument+' > json_file')
         fo = open("json_file", "r")
         strg = fo.readlines();
         fo.close()
         open("json_file", 'w').close()
         #print "iii "+strg
         arguments.pid=re.split("Output: ", strg[0])[1].rstrip()
-        print "pid "+arguments.pid
+        #print "pid "+arguments.pid
         src_site=pidsource(arguments)
         #ss="iiidd"
         #ss=jsonformatter()
@@ -183,7 +185,7 @@ def urlsource(arguments):
 # Populate it    
         for url in urllist:
             argument=formatter("url",url.rstrip())
-            os.system(iPATH+'irule -F PIDselecter.r '+argument+' | tr -d "Output: " >> pidfile')
+            os.system(iPATH+'/irule -F PIDselecter.r '+argument+' | tr -d "Output: " >> pidfile')
         arguments.pidfile="pidfile"
         src_site=pidsource(arguments)
         return src_site
@@ -221,8 +223,6 @@ For example:
 ./datastager.py -p /home/irods/data/archive -y 2004 -n MN -s AQU -c BHE -u cin0641a --ss ingv --ds vzSARA --dd vzSARA/home/rods#CINECA/
     """
     sys.exit(0)
-
-iPATH='/home/jack/CINECA/GridTools/iRODS/iRODS/clients/icommands/bin/'
 
 parser = argparse.ArgumentParser(description=" Data stager: move a bounce of data inside or outside iRODS via GridFTP. \n The -d options requires both positional arguments.", 
         formatter_class=RawTextHelpFormatter)
@@ -401,7 +401,7 @@ if arguments.direction == "in":
                 argument = formatter("url","irods://"+endpoint+":1247"+plainurl)
                 argument = formatter("url","\*"+plainurl)
                 print argument
-                os.system(iPATH+'irule -F PIDselecter.r '+argument+' >> pid.file')
+                os.system(iPATH+'/irule -F PIDselecter.r '+argument+' | awk \'{print $2}\' >> pid.file')
             sys.exit(0)
         else:
             "You did not provide the taskid!"
