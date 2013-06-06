@@ -65,27 +65,30 @@ def mover(username, src_site, dst_site, dst_dir):
     site_ep2 = dst_site
 
     _, _, reqs = api.endpoint_activation_requirements(site_ep1, type="delegate_proxy")
-    print "site_ep1"
-    print reqs
+    print "site_ep1",site_ep1
+    #print reqs
     public_key = reqs.get_requirement_value("delegate_proxy", "public_key")
-    print public_key
+    #print public_key
     proxy = x509_proxy.create_proxy_from_file(user_credential_path, public_key)
+    print "proxy"
     print proxy
     reqs.set_requirement_value("delegate_proxy", "proxy_chain", proxy)
-    print reqs
+    #print reqs
     result = api.endpoint_activate(site_ep1, reqs)
-    print result
+    #print result
 
     _, _, reqs = api.endpoint_activation_requirements(site_ep2, type="delegate_proxy")
-    print "site_ep2"
-    print reqs
+    print "site_ep2",site_ep2
+    #print reqs
     public_key = reqs.get_requirement_value("delegate_proxy", "public_key")
-    print public_key
+    #print public_key
     proxy = x509_proxy.create_proxy_from_file(user_credential_path, public_key)
+    print "proxy"
+    print proxy
     reqs.set_requirement_value("delegate_proxy", "proxy_chain", proxy)
-    print reqs
+    #print reqs
     result = api.endpoint_activate(site_ep2, reqs)
-    print result
+    #print result
 
     #conditional_activation(site_ep1,site_username)
     #conditional_activation(site_ep2,site_username)
@@ -172,6 +175,16 @@ def lookforurl(username, task_id):
     #display_task_list(); print
     #display_endpoint_list(); print
     #status, reason, result = api.task(task_id)
+
+    oldstdout=sys.stdout
+    sys.stdout = open(os.devnull,'w')
+    status, reason, result = api.task(task_id)
+    sys.stdout = oldstdout # enable output
+    if result["status"] != "SUCCEEDED":
+        print "The process is not finished yet."
+        print "Its status is "+result["status"]; print
+        sys.exit(0)
+
     status, reason, result = api.subtask_list(task_id)
     #print "Transfer status is: "+result["status"]
     #print "Transfer command was: "+result["command"]
