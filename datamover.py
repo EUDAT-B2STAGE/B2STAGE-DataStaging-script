@@ -142,6 +142,16 @@ def lookforurl(username, task_id):
     #display_task_list(); print
     #display_endpoint_list(); print
     #status, reason, result = api.task(task_id)
+
+    oldstdout=sys.stdout
+    sys.stdout = open(os.devnull,'w')
+    status, reason, result = api.task(task_id)
+    sys.stdout = oldstdout # enable output
+    if result["status"] != "SUCCEEDED":
+        print "The process is not finished yet."
+        print "Its status is "+result["status"]; print
+        sys.exit(0)
+
     status, reason, result = api.subtask_list(task_id)
     #print "Transfer status is: "+result["status"]
     #print "Transfer command was: "+result["command"]

@@ -400,7 +400,7 @@ if arguments.direction == "in":
                 plainurl = url.replace("//","/")
                 argument = formatter("url","irods://"+endpoint+":1247"+plainurl)
                 argument = formatter("url","\*"+plainurl)
-                print argument
+                #print argument
                 os.system(iPATH+'/irule -F PIDselecter.r '+argument+' | awk \'{print $2}\' >> pid.file')
             sys.exit(0)
         else:
