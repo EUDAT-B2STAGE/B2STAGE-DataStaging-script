@@ -76,6 +76,9 @@ def mover(username, src_site, dst_site, dst_dir):
     #print reqs
     result = api.endpoint_activate(site_ep1, reqs)
     #print result
+    #status, message, data = api.endpoint_autoactivate(site_ep1)
+    #print data["code"]
+
 
     _, _, reqs = api.endpoint_activation_requirements(site_ep2, type="delegate_proxy")
     print "site_ep2",site_ep2
