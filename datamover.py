@@ -57,7 +57,11 @@ def mover(username, src_site, dst_site, dst_dir):
     site_username = username
     dest_directory= dst_dir
     api.set_debug_print(False, False)
+    status, message, data = api.endpoint_autoactivate(site_ep1)
+    print data["code"]
     conditional_activation(site_ep1,site_username)
+    status, message, data = api.endpoint_autoactivate(site_ep2)
+    print data["code"]
     conditional_activation(site_ep2,site_username)
 
     print "=== Prepare transfer ==="
