@@ -46,7 +46,7 @@ def mover(username, src_site, dst_site, dst_dir):
     #activer=[username,"-c",os.getcwd()+"/credential.pem"]
     #api, _ = create_client_from_args(activer)
     user_credential_path=os.getcwd()+"/credential.pem"
-    print "user_credential_path=",user_credential_path
+    #print "user_credential_path=",user_credential_path
     api = TransferAPIClient(username, cert_file=user_credential_path)
     api.set_debug_print(False, False)
     #print " Here (mover): ",api.task_list()
@@ -57,44 +57,15 @@ def mover(username, src_site, dst_site, dst_dir):
     #display_endpoint_list(); print
 
     print "=== Activate endpoints ==="
-    #print "== If asked below, insert the password of your myproxy server =="
-    #print "== If asked after two \"Activating EP\" strings, insert the password of your GO account =="
-    site_username = username
     dest_directory= dst_dir
     site_ep1 = src_site
     site_ep2 = dst_site
 
-    _, _, reqs = api.endpoint_activation_requirements(site_ep1, type="delegate_proxy")
-    print "site_ep1",site_ep1
-    #print reqs
-    public_key = reqs.get_requirement_value("delegate_proxy", "public_key")
-    #print public_key
-    proxy = x509_proxy.create_proxy_from_file(user_credential_path, public_key)
-    print "proxy"
-    print proxy
-    reqs.set_requirement_value("delegate_proxy", "proxy_chain", proxy)
-    #print reqs
-    result = api.endpoint_activate(site_ep1, reqs)
-    #print result
-    #status, message, data = api.endpoint_autoactivate(site_ep1)
-    #print data["code"]
+    print "Please enter your myproxy username (\'none\' if you don\' have one). Note that griffin \"prefers\" myproxy ;-)"
+    myproxy_username = sys.stdin.readline().rstrip()
 
-
-    _, _, reqs = api.endpoint_activation_requirements(site_ep2, type="delegate_proxy")
-    print "site_ep2",site_ep2
-    #print reqs
-    public_key = reqs.get_requirement_value("delegate_proxy", "public_key")
-    #print public_key
-    proxy = x509_proxy.create_proxy_from_file(user_credential_path, public_key)
-    print "proxy"
-    print proxy
-    reqs.set_requirement_value("delegate_proxy", "proxy_chain", proxy)
-    #print reqs
-    result = api.endpoint_activate(site_ep2, reqs)
-    #print result
-
-    #conditional_activation(site_ep1,site_username)
-    #conditional_activation(site_ep2,site_username)
+    preferred_activation(username, site_ep1, myproxy_username)
+    preferred_activation(username, site_ep2, myproxy_username)
 
     print "=== Prepare transfer ==="
     #raw_input("Press Enter to continue...")
@@ -204,6 +175,60 @@ def lookforurl(username, task_id):
         outurllist.append(subtask["destination_path"])
         destendpoint.append(re.split("#",subtask["destination_endpoint"])[1])
     return inurllist, outurllist, destendpoint
+
+def preferred_activation(username, endpoint_name, myproxy_username):
+    user_credential_path=os.getcwd()+"/credential.pem"
+    print "==Activating %s ==" % endpoint_name
+    api = TransferAPIClient(username, cert_file=user_credential_path)
+    api.set_debug_print(False, False)
+    try:
+        code, message, data = api.endpoint(endpoint_name)
+        if not data["activated"]:
+            try:
+                print "==Try autoactivation=="
+                code, message, data = api.endpoint_autoactivate(endpoint_name)
+            except:
+                print "Cannot autoactivate"
+    except:
+        pass
+    
+    try:
+        code, message, data = api.endpoint(endpoint_name)
+    except:
+        data={'activated': "Unavailable"}
+
+    if not data["activated"]: # and data["activated"] == "Unavailable":
+        try:
+            if myproxy_username != "none":
+                print "==Try myproxy for %s ==" % myproxy_username
+                status, message, data = api.endpoint_autoactivate(endpoint_name)
+                data.set_requirement_value("myproxy", "username", myproxy_username)
+                from getpass import getpass
+                passphrase = getpass()
+                data.set_requirement_value("myproxy", "passphrase", passphrase)
+                api.endpoint_activate(endpoint_name, data)
+                #activer=[username,"-c",os.getcwd()+"/credential.pem"]
+                #api, _ = create_client_from_args(activer)
+                #conditional_activation(endpoint_name,myproxy_username)
+                code, message, data = api.endpoint(endpoint_name)
+            else:
+                raise 
+        except:
+            print "==Local proxy activation=="
+            _, _, reqs = api.endpoint_activation_requirements(endpoint_name, type="delegate_proxy")
+            #print "endpoint_name",endpoint_name
+            #print reqs
+            public_key = reqs.get_requirement_value("delegate_proxy", "public_key")
+            #print public_key
+            proxy = x509_proxy.create_proxy_from_file(user_credential_path, public_key)
+            #print "proxy"
+            #print proxy
+            reqs.set_requirement_value("delegate_proxy", "proxy_chain", proxy)
+            #print reqs
+            result = api.endpoint_activate(endpoint_name, reqs)
+            #print result
+            #status, message, data = api.endpoint_autoactivate(endpoint_name)
+            #print data["code"]
 
 
 
@@ -366,79 +391,6 @@ def display_ls(endpoint_name, path=""):
     print headers
     for f in data["DATA"]:
         print ", ".join([unicode_(f[k]) for k in headers_list])
-
-##################################################################################
-# Old code...
-##################################################################################
-def tutorial():
-    """
-    Do a bunch of API calls and display the results. Does a small transfer
-    between tutorial endpoints, but otherwise does not modify user data.
-
-    Uses module global API client instance.
-    """
-    # See what is in the account before we make any submissions.
-    print "=== Before transfer ==="
-    display_tasksummary(); print
-    #display_task_list(); print
-    #display_endpoint_list(); print
-
-    print "=== Activate endpoints ==="
-    site_ep1 = "irods-dev"
-    site_ep2 = "GSI-PLX"
-    site_username = "cin0641a"
-    dest_directory= "/~/tmp/"
-    api.set_debug_print(False, True)
-    conditional_activation(site_ep1,site_username)
-    conditional_activation(site_ep2,site_username)
-
-    print "=== Prepare transfer ==="
-    #raw_input("Press Enter to continue...")
-    # submit a transfer
-    code, message, data = api.transfer_submission_id()
-    submission_id = data["value"]
-    deadline = datetime.utcnow() + timedelta(minutes=10)
-    t = Transfer(submission_id, site_ep1, site_ep2)#, deadline)
-
-    f=open('json_file','r')
-    json_results=f.read()
-    f.close
-    #print json_results,type(json_results)
-    results=json.loads(json_results)
-    #print results,type(results)
-    #print results[0],type(results[0])
-    for result in results:
-        print "Result:", result
-        t.add_item(result, dest_directory, recursive=True)
-
-    print "=== Submit transfer ==="
-    code, reason, data = api.transfer(t)
-    task_id = data["task_id"]
-    print " Task ID is %s " % (task_id)
-
-    # see the new transfer show up
-    #print "=== After submit ==="
-    #display_tasksummary(); print
-    #display_task(task_id); print
-    #raw_input("Press Enter to continue...")
-
-    # wait for the task to complete, and see the summary and lists
-    # update
-    print "=== Checking completion ==="
-    # To save the task_id for further check could be useful.
-    #wait_for_task(task_id)
-    max_wait = 60*1
-    if wait_for_task(task_id,max_wait):
-        print " Task %s is still under process " % (task_id)
-        display_tasksummary(); print
-        #display_task(task_id); print
-        #display_ls("cin0641a#GSI-PLX"); print
-    print "=== Exiting ==="
-    display_tasksummary(); print
-##################################################################################
-# End of old code...
-##################################################################################
-
 
 
 if __name__ == '__main__':

@@ -9,14 +9,15 @@ import re
 
 import datamover
 
-iPATH='/home/jack/CINECA/GridTools/iRODS/iRODS/clients/icommands/bin/'
+#iPATH='/home/jack/CINECA/GridTools/iRODS/iRODS/clients/icommands/bin/'
 
-urlendpoint={
-    'data.repo.cineca.it': "cinecaRepoSingl",
-    'irods-dev.cineca.it': "irods-dev",
-    'dtn01.hector.ac.uk': "dtn01",
-    'eudat-irodsdev.epcc.ed.ac.uk': "eudat-irodsdev"
-}
+#urlendpoint={
+    #'data.repo.cineca.it': "cinecaRepoSingl",
+    #'irods-dev.cineca.it': "irods-dev",
+    #'dtn01.hector.ac.uk': "dtn01",
+    #'eudat-irodsdev.epcc.ed.ac.uk': "eudat-irodsdev"
+#}
+execfile(os.getcwd()+"/datastagerconfig.py")
 
 def formatter(a,x):
     y='"*'+a+'=\\"'+x+'\\"" '
