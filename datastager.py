@@ -306,16 +306,16 @@ if os.path.exists('credential.pem'):
 else:
     print "No proxy. Create one, please!"
     os.system('grid-proxy-init -out credential.pem')
-try:
-    retvalue = os.system('grid-proxy-info -exists') 
-    if retvalue == 0:
-        print "Proxy found!"
-    else:
-        print "Proxy expired. New one, please!"
+    try:
+        retvalue = os.system('grid-proxy-info -exists') 
+        if retvalue == 0:
+            print "Proxy found!"
+        else:
+            print "Proxy expired. New one, please!"
+            os.system('grid-proxy-init')
+    except:
+        print "Proxy invalid. New one, please!"
         os.system('grid-proxy-init')
-except:
-    print "Proxy invalid. New one, please!"
-    os.system('grid-proxy-init')
 print ""
 
 
