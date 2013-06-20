@@ -293,6 +293,7 @@ print "Hello, welcome to data staging!"
 # Check for a local x509 proxy
 print ""
 if os.path.exists('credential.pem'):
+    print "credential.pem exist" 
     try:
         retvalue = os.system('grid-proxy-info -exists -f credential.pem') 
         if retvalue == 0:
@@ -304,10 +305,10 @@ if os.path.exists('credential.pem'):
         print "Proxy invalid. New one, please!"
         os.system('grid-proxy-init -out credential.pem')
 else:
-    print "No proxy. Create one, please!"
+    print "credential.pem does not exist. Create it, please!"
     os.system('grid-proxy-init -out credential.pem')
     try:
-        retvalue = os.system('grid-proxy-info -exists') 
+        retvalue = os.system('grid-proxy-info -exists -f credential.pem') 
         if retvalue == 0:
             print "Proxy found!"
         else:
