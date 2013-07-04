@@ -162,8 +162,11 @@ def lookforurl(username, task_id):
         print "The task succeeded"
 
     status, reason, result = api.subtask_list(task_id)
-    print "Transfer status is: "+result["status"]
-    print "Transfer command was: "+result["command"]
+    #status, reason, result = api.successful_transfers(task_id)
+    #print "Transfer status is: "+result["status"]
+    #print "Transfer command was: "+result["command"]
+    #print status; print
+    #print reason; print
     #print result; print
     #print result["subtask_link"]; print
     #print result["subtask_link"]["resource"],type(result["subtask_link"]["resource"])
@@ -171,8 +174,8 @@ def lookforurl(username, task_id):
     outurllist   = []
     destendpoint = []
     for subtask in result["DATA"]:
-        print subtask
-        print subtask["source_path"], subtask["destination_path"], subtask["destination_endpoint"]
+        #print subtask
+        #print subtask["source_path"], subtask["destination_path"], subtask["destination_endpoint"]
         inurllist.append(subtask["source_path"])
         outurllist.append(subtask["destination_path"])
         destendpoint.append(re.split("#",subtask["destination_endpoint"])[1])
