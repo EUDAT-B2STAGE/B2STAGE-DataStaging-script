@@ -297,7 +297,7 @@ os.system('clear')
 print "Hello, welcome to data staging!" 
 
 # Check for a local x509 proxy
-grid_proxy_init_options=""
+grid_proxy_init_options=' -out credential-'+arguments.user+'.pem '
 if arguments.cert:
     grid_proxy_init_options=grid_proxy_init_options+' -cert '+arguments.cert
 if arguments.key:
@@ -305,27 +305,26 @@ if arguments.key:
 if arguments.certdir:
     grid_proxy_init_options=grid_proxy_init_options+' -certdir '+arguments.certdir
 
-#print "grid_proxy_init_options" 
-#print grid_proxy_init_options
+#print "grid_proxy_init_options: "+grid_proxy_init_options
 
 print ""
-if os.path.exists('credential.pem'):
-    print "credential.pem exist" 
+if os.path.exists('credential-'+arguments.user+'.pem'):
+    print "credential-"+arguments.user+".pem exist" 
     try:
-        retvalue = os.system('grid-proxy-info -exists -f credential.pem') 
+        retvalue = os.system('grid-proxy-info -exists -f credential-'+arguments.user+'.pem') 
         if retvalue == 0:
             print "Proxy found!"
         else:
             print "Proxy expired. New one, please!"
-            os.system('grid-proxy-init -out credential.pem'+grid_proxy_init_options)
+            os.system('grid-proxy-init'+grid_proxy_init_options)
     except:
         print "Proxy invalid. New one, please!"
-        os.system('grid-proxy-init -out credential.pem'+grid_proxy_init_options)
+        os.system('grid-proxy-init'+grid_proxy_init_options)
 else:
-    print "credential.pem does not exist. Create it, please!"
-    os.system('grid-proxy-init -out credential.pem'+grid_proxy_init_options)
+    print "credential-"+arguments.user+".pem does not exist. Create it, please!"
+    os.system('grid-proxy-init'+grid_proxy_init_options)
     try:
-        retvalue = os.system('grid-proxy-info -exists -f credential.pem') 
+        retvalue = os.system('grid-proxy-info -exists -f credential-'+arguments.user+'.pem') 
         if retvalue == 0:
             print "Proxy found!"
         else:
