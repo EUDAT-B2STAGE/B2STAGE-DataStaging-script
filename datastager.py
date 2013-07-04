@@ -52,7 +52,11 @@ def jsonformatter():
         url=re.split("//",sublista[1])[1]
         prepath=re.split("^\d\d\d\d",sublista[2])[1].rstrip()
         path.append(prepath)
-        endpoint.append(urlendpoint[url])
+        try:
+            endpoint.append(urlendpoint[url])
+        except:
+            print "The server "+url+" is not mapped to a GO enpoint in datastagerconfig" 
+            sys.exit(0)
         #print url
         #print path
         #print endpoint
@@ -136,7 +140,7 @@ def irodssource(arguments):
 def pidsource(arguments):
     if arguments.pid:
         argument=formatter("pid",arguments.pid.rstrip())
-        #print "PID: "+argument
+        print "PID: "+argument
         os.system(iPATH+'/irule -F URLselecter.r '+argument+' > json_file')
         sslist=jsonformatter()
         return sslist[0]
@@ -148,9 +152,9 @@ def pidsource(arguments):
         open("json_file", 'w').close()
 # Populate it    
         for pid in pidlist:
-            #print "pid: "+pid
+            print "pid: "+pid
             argument=formatter("pid",pid.rstrip())
-            #print "pid: "+argument
+            print "pid: "+argument
             os.system(iPATH+'/irule -F URLselecter.r '+argument+' >> json_file')
         sslist = jsonformatter()
         if not all_same(sslist):
@@ -413,6 +417,10 @@ if arguments.direction == "in":
             for url, ep in urlendpoint.items():
                 if ep == destendpoint[0]:
                     endpoint=url
+            if !endpoint:
+                print "The server "+destendpoint[0]+" is not mapped to a GO enpoint in datastagerconfig" 
+                sys.exit(0)
+
             #print endpoint
             fo = open("pid.file", "w").close
             for url in outurllist:
