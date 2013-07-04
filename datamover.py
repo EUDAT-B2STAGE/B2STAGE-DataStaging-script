@@ -45,7 +45,7 @@ def mover(username, src_site, dst_site, dst_dir):
     global api
     #activer=[username,"-c",os.getcwd()+"/credential.pem"]
     #api, _ = create_client_from_args(activer)
-    user_credential_path=os.getcwd()+"/credential.pem"
+    user_credential_path=os.getcwd()+"/credential-"+username+".pem"
     #print "user_credential_path=",user_credential_path
     api = TransferAPIClient(username, cert_file=user_credential_path)
     api.set_debug_print(False, False)
@@ -139,7 +139,7 @@ def lookforurl(username, task_id):
     """
     Uses module global API client instance.
     """
-    activer=[username,"-c",os.getcwd()+"/credential.pem"]
+    activer=[username,"-c",os.getcwd()+"/credential-"+username+".pem"]
     global api
     api, _ = create_client_from_args(activer)
     #print " Here: ",api.task_list()
@@ -158,10 +158,15 @@ def lookforurl(username, task_id):
         print "The process is not finished yet."
         print "Its status is "+result["status"]; print
         sys.exit(0)
+    else:
+        print "The task succeeded"
 
     status, reason, result = api.subtask_list(task_id)
+    #status, reason, result = api.successful_transfers(task_id)
     #print "Transfer status is: "+result["status"]
     #print "Transfer command was: "+result["command"]
+    #print status; print
+    #print reason; print
     #print result; print
     #print result["subtask_link"]; print
     #print result["subtask_link"]["resource"],type(result["subtask_link"]["resource"])
@@ -177,7 +182,7 @@ def lookforurl(username, task_id):
     return inurllist, outurllist, destendpoint
 
 def preferred_activation(username, endpoint_name, myproxy_username):
-    user_credential_path=os.getcwd()+"/credential.pem"
+    user_credential_path=os.getcwd()+"/credential-"+username+".pem"
     print "==Activating %s ==" % endpoint_name
     api = TransferAPIClient(username, cert_file=user_credential_path)
     api.set_debug_print(False, False)

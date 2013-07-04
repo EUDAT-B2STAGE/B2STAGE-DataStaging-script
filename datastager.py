@@ -245,6 +245,12 @@ parser.add_argument("-pF", "--pathFile", help="the file listing your files (alte
         action="store", dest="pathfile")
 parser.add_argument("-u", "--username", help="your username on globusonline.org", action="store",
         dest="user")
+parser.add_argument("-cert", "--certificate", help="your x509 certificate (pem file)", action="store",
+        dest="cert")
+parser.add_argument("-key", "--secretekey", help="the key of your certificate", action="store",
+        dest="key")
+parser.add_argument("-certdir", "--trustedca", help="your trusted CA", action="store",
+        dest="certdir")
 # SEED informations
 seedgroup.add_argument("-y", "--year", help="the year of interest", action="store",
         dest="year")
@@ -291,32 +297,42 @@ os.system('clear')
 print "Hello, welcome to data staging!" 
 
 # Check for a local x509 proxy
+grid_proxy_init_options=' -out credential-'+arguments.user+'.pem '
+if arguments.cert:
+    grid_proxy_init_options=grid_proxy_init_options+' -cert '+arguments.cert
+if arguments.key:
+    grid_proxy_init_options=grid_proxy_init_options+' -key '+arguments.key
+if arguments.certdir:
+    grid_proxy_init_options=grid_proxy_init_options+' -certdir '+arguments.certdir
+
+#print "grid_proxy_init_options: "+grid_proxy_init_options
+
 print ""
-if os.path.exists('credential.pem'):
-    print "credential.pem exist" 
+if os.path.exists('credential-'+arguments.user+'.pem'):
+    print "credential-"+arguments.user+".pem exist" 
     try:
-        retvalue = os.system('grid-proxy-info -exists -f credential.pem') 
+        retvalue = os.system('grid-proxy-info -exists -f credential-'+arguments.user+'.pem') 
         if retvalue == 0:
             print "Proxy found!"
         else:
             print "Proxy expired. New one, please!"
-            os.system('grid-proxy-init -out credential.pem')
+            os.system('grid-proxy-init'+grid_proxy_init_options)
     except:
         print "Proxy invalid. New one, please!"
-        os.system('grid-proxy-init -out credential.pem')
+        os.system('grid-proxy-init'+grid_proxy_init_options)
 else:
-    print "credential.pem does not exist. Create it, please!"
-    os.system('grid-proxy-init -out credential.pem')
+    print "credential-"+arguments.user+".pem does not exist. Create it, please!"
+    os.system('grid-proxy-init'+grid_proxy_init_options)
     try:
-        retvalue = os.system('grid-proxy-info -exists -f credential.pem') 
+        retvalue = os.system('grid-proxy-info -exists -f credential-'+arguments.user+'.pem') 
         if retvalue == 0:
             print "Proxy found!"
         else:
             print "Proxy expired. New one, please!"
-            os.system('grid-proxy-init')
+            os.system('grid-proxy-init'+grid_proxy_init_options)
     except:
         print "Proxy invalid. New one, please!"
-        os.system('grid-proxy-init')
+        os.system('grid-proxy-init'+grid_proxy_init_options)
 print ""
 
 
@@ -393,6 +409,7 @@ if arguments.direction == "in":
                 print "All the pid should be mapped to the same GO endpoint"
                 sys.exit(1)
             #endpoint = urlendpoint[destendpoint[0]]
+            #print destendpoint[0]
             for url, ep in urlendpoint.items():
                 if ep == destendpoint[0]:
                     endpoint=url
