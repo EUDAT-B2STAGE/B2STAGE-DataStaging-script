@@ -410,6 +410,7 @@ if arguments.direction == "in":
                 print "All the pid should be mapped to the same GO endpoint"
                 sys.exit(1)
             #endpoint = urlendpoint[destendpoint[0]]
+            print destendpoint[0]
             for url, ep in urlendpoint.items():
                 if ep == destendpoint[0]:
                     endpoint=url

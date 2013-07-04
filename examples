@@ -1,4 +1,6 @@
+##################################################################################
 #Stage out
+##################################################################################
 
 ./datastager.py out seed -p /CINECA01/home/cin_staff/gmariani/testGO/CINECA01/home/EUDAT_EPOS/EPOSReplica/archive/ -y 2008 -n IV -s CAFR -c HHE -u cin0641a --ss cinecaRepoSingl --ds GSI-PLX --dd /gpfs/scratch/userinternal/cin0641a/DS-Test/
 
@@ -13,7 +15,9 @@
 ./datastager.py out pid -PF /home/jack/CINECA/SVN/EUDAT/Sandbox/Data-Staging/Island2/pid.file.example -u cin0641a --ds GSI-PLX --dd /gpfs/scratch/userinternal/cin0641a/DS-Test/
 
 
+##################################################################################
 #Stage in
+##################################################################################
 
 ./datastager.py in taskid -u cin0641a --ss GSI-PLX --sd /gpfs/scratch/userinternal/cin0641a/DS-Test/ -p file.example --ds cinecaRepoSingl --dd  /CINECA01/home/cin_staff/gmariani/testPID/
 
