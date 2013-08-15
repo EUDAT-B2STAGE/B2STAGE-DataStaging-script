@@ -91,7 +91,7 @@ def seedsource(arguments):
     else:
         print "You selected seed so the station is required"
         sys.exit(1)
-    if arguments.user is None:
+    if arguments.transfermethod == 'go' and arguments.user is None:
         print " The username is mandatory! "
         sys.exit(1)
 
@@ -129,7 +129,7 @@ def irodssource(arguments):
     else: 
         print "You selected irods so one between path and pathFile is required"
         sys.exit(1)
-    if arguments.user is None:
+    if arguments.transfermethod == 'go' and arguments.user is None:
         print " The username is mandatory! "
         sys.exit(1)
 
@@ -200,6 +200,7 @@ Invoke as follow for stage out:
 ./datastager.py out irods -p path  
                           -u GO-user 
                           --ss source-end-point --ds dest-end-point --dd dest-dir
+./datastager.py out irods -p path -u GO-user --ss source-end-point --ds dest-end-point --dd dest-dir
 or
 ./datastager.py out seed -p path -y year -n network -s station -c channel 
                          -u GO-user 
@@ -232,19 +233,35 @@ seedgroup = parser.add_argument_group('seed', 'Options specific to seed')
 irodsgroup = parser.add_argument_group('irods', 'Options specific to irods')
 urlgroup = parser.add_argument_group('url', 'Options specific to url (mutually exclusive)')
 pidgroup = parser.add_argument_group('pid', 'Options specific to pid (mutually exclusive)')
+gogroup = parser.add_argument_group('go', 'Options specific to transfers with globus online')
+ftsgroup = parser.add_argument_group('fts', 'Options specific to transfers with globus online')
+
 # Examples
 parser.add_argument("-d", "--details", help="a longer description and some usage examples", action="store_true")
 # Stage in or stage out
 parser.add_argument("direction",choices=['in','out'],default="NULL",help=" the direction of the stage: in or out")
 # Kind of source: seed, url or PID
 parser.add_argument("kind",choices=['seed','irods','pid','url','taskid'],default="NULL",help=" the description of your data")
+parser.add_argument("transfermethod",choices=['go','fts'], default="NULL",help="the transfer method to use")
 # General informations
 parser.add_argument("-p", "--path", help="the path of your file (iRODS collection or local file system depending on the circumstances)", 
         action="store", dest="path")
 parser.add_argument("-pF", "--pathFile", help="the file listing your files (alternative to -p)",
         action="store", dest="pathfile")
-parser.add_argument("-u", "--username", help="your username on globusonline.org", action="store",
+# GO information
+gogroup.add_argument("-u", "--username", help="your username on globusonline.org", action="store",
         dest="user")
+# FTS information
+ftsgroup.add_argument("-e", "--ftsEndpoint", help="the fts server to use", action="store",
+        dest="fts_endpoint")
+ftsgroup.add_argument("-E", "--certificate", help="your user certificate", action="store",
+        dest="cert_path")
+ftsgroup.add_argument("-b", "--waiting", help="wait until the transfers finish", default=False, 
+        action="store_true", dest="waiting")
+ftsgroup.add_argument("-w", "--max-wait", help="maximum time to wait", default=-1, action="store",
+        type=int, dest="maxwait")
+ftsgroup.add_argument("-o", "--overwrite", help="overwrite files at the destination", default=False,
+        action="store_true", dest="overwrite")
 # SEED informations
 seedgroup.add_argument("-y", "--year", help="the year of interest", action="store",
         dest="year")
@@ -287,7 +304,7 @@ if arguments.details:
 ##################################################################################
 # Start the execution
 ##################################################################################
-os.system('clear')
+#os.system('clear')
 print "Hello, welcome to data staging!" 
 
 # Check for a local x509 proxy
@@ -418,4 +435,17 @@ if arguments.direction == "in":
 # Actually move the data
 ##################################################################################
 api = None
-datamover.mover(str(arguments.user), str(arguments.src_site), str(arguments.dst_site), str(arguments.dst_dir))
+if arguments.transfermethod == 'fts':
+  datamover.fts_mover(arguments.fts_endpoint,
+                      arguments.cert_path,
+                      arguments.src_site, 
+                      arguments.dst_site,
+                      arguments.dst_dir,
+                      arguments.waiting,
+                      arguments.maxwait,
+                      arguments.overwrite)
+elif arguments.transfermethod == 'go':
+  datamover.mover(str(arguments.user),
+                  str(arguments.src_site),
+                  str(arguments.dst_site),
+                  str(arguments.dst_dir))

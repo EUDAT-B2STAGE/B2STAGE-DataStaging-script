@@ -26,114 +26,99 @@ import traceback
 import json, os
 import re, sys
 
-from globusonline.transfer.api_client import Transfer, create_client_from_args
-from globusonline.transfer.api_client import ActivationRequirementList
-from globusonline.transfer.api_client import TransferAPIClient
-from globusonline.transfer.api_client import x509_proxy
+from fts3.rest.client.submitter import Submitter as FTSSubmitter
+from fts3.rest.client.context import Context as FTSContext
+from fts3.rest.client.delegator import Delegator as FTSDelegator
+from fts3.rest.client.inquirer import Inquirer as FTSInquirer
 
 
-# TransferAPIClient instance.
-api = None
-
-def mover(username, src_site, dst_site, dst_dir):
+def fts_mover(fts_endpoint, cert_path, src_site, dst_site, 
+              dst_dir, waiting, timeout, overwrite):
     """
     Do a bunch of API calls and display the results. Does a small transfer
     between tutorial endpoints, but otherwise does not modify user data.
 
     Uses module global API client instance.
     """
-    global api
-    #activer=[username,"-c",os.getcwd()+"/credential.pem"]
-    #api, _ = create_client_from_args(activer)
-    user_credential_path=os.getcwd()+"/credential.pem"
-    #print "user_credential_path=",user_credential_path
-    api = TransferAPIClient(username, cert_file=user_credential_path)
-    api.set_debug_print(False, False)
-    #print " Here (mover): ",api.task_list()
-    # See what is in the account before we make any submissions.
-    print "=== Before transfer ==="
-    #display_tasksummary(); print
-    #display_task_list(); print
-    #display_endpoint_list(); print
 
     print "=== Activate endpoints ==="
     dest_directory= dst_dir
     site_ep1 = src_site
     site_ep2 = dst_site
 
-    print "Please enter your myproxy username (\'none\' if you don\' have one). Note that griffin \"prefers\" myproxy ;-)"
-    myproxy_username = sys.stdin.readline().rstrip()
-
-    preferred_activation(username, site_ep1, myproxy_username)
-    preferred_activation(username, site_ep2, myproxy_username)
-
     print "=== Prepare transfer ==="
-    #raw_input("Press Enter to continue...")
-    # submit a transfer
-    oldstdout=sys.stdout
-    sys.stdout = open(os.devnull,'w')
-    code, message, data = api.transfer_submission_id()
-    sys.stdout = oldstdout # enable output
-    #code, message, data = api.transfer_submission_id()
-    submission_id = data["value"]
-    deadline = datetime.utcnow() + timedelta(minutes=10)
-    t = Transfer(submission_id, site_ep1, site_ep2)#, deadline)
 
-    f=open('json_file','r')
-    json_results=f.read()
-    f.close
-    #print json_results,type(json_results)
-    results=json.loads(json_results)
-    #print results,type(results)
-    #print results[0],type(results[0])
-    for result in results:
-        #print "Result: ",result
-        if result[-1]=="/":
-            #print "Result: it is a directory"
-            t.add_item(result, dest_directory, recursive=True)
-        else:
-            #print "Result: it is a file"
-            file_name=re.split("/",result)[-1]
-            #print "Result: "+file_name
-            t.add_item(result, dest_directory+"/"+file_name)
+    ####### invoke fts3 transfer #######
+
+    fts_context = FTSContext(fts_endpoint, cert_path, cert_path)
+
+    # create src/dst pairs
+    src_paths = []
+    with open('json_file') as src_path_file:
+      src_paths = json.load(src_path_file)
+
+    src_list = []
+    dst_list = []
+
+    for path in src_paths:
+      src_list.append(site_ep1+path)
+      dst_list.append(site_ep2+dest_directory+os.path.basename(path))
+
+    fts_delegator = FTSDelegator(fts_context)
+    delegationId = fts_delegator.delegate(timedelta(minutes = 420))
+    fts_submitter = FTSSubmitter(fts_context)
+    
+    kwargs = {
+        'checksum'          : None,
+        'bring_online'      : None,
+        'verify_checksum'   : False,
+        'spacetoken'        : None,
+        'source_spacetoken' : None,
+        'fail_nearline'     : False,
+        'file_metadata'     : None, 
+        'filesize'          : None, 
+        'gridftp'           : None, 
+        'job_metadata'      : None, 
+        'overwrite'         : overwrite,
+        'copy_pin_lifetime' : -1,
+        'reuse'             : False
+        }
+
+    job = {}
+    job['files'] = [{'sources': src_list, 'destinations': dst_list}]
+    job['params'] = kwargs
 
     print "=== Submit transfer ==="
-    oldstdout=sys.stdout
-    sys.stdout = open(os.devnull,'w')
-    code, reason, data = api.transfer(t)
-    sys.stdout = oldstdout # enable output
-    #code, reason, data = api.transfer(t)
-    task_id = data["task_id"]
-    #print " Task ID is %s " % (task_id)
+    print delegationId
+    print src_list
+    print
+    print dst_list
+    jobId = json.loads(fts_context.post_json('/jobs', json.dumps(job)))['job_id']
+    print jobId
 
-    # see the new transfer show up
-    #print "=== After submit ==="
-    #display_tasksummary(); print
-    #display_task(task_id); print
-    #raw_input("Press Enter to continue...")
+    ####### end fts3 invokation ########
 
-    # wait for the task to complete, and see the summary and lists
-    # update
     print "=== Checking completion ==="
-    # To save the task_id for further check could be useful.
-    #wait_for_task(task_id)
-    max_wait = 10*1
-    if wait_for_task(task_id,max_wait):
-        print " Task %s is still under process " % (task_id)
-        oldstdout=sys.stdout
-        sys.stdout = open(os.devnull,'w')
-        display_tasksummary(); print
-        sys.stdout = oldstdout # enable output
-        #display_task(task_id); print
-        #display_ls("cin0641a#GSI-PLX"); print
-    print "=== Exiting ==="
-    #display_tasksummary(); print
-    print "The task ID for this operation is: "+task_id; print
-    oldstdout=sys.stdout
-    sys.stdout = open(os.devnull,'w')
-    status, reason, result = api.task(task_id)
-    sys.stdout = oldstdout # enable output
-    print "Its status is "+result["status"]; print
+
+    ####### wait for results ###########
+
+    if jobId and waiting:
+      poll_interval = 10
+      fts_inquirer = FTSInquirer(fts_context)
+      while timeout:
+        timeout -= 1
+        time.sleep(poll_interval)
+        job = fts_inquirer.getJobStatus(jobId)
+        if job['job_state'] not in ['SUBMITTED', 'READY', 'STAGING', 'ACTIVE']:
+          print "Job finished with state %s" % job['job_state']
+          break
+        print "Job in state %s" % job['job_state']
+
+      if not timeout:
+        print "we stopped looking after the timeout expired"
+      if job['reason']:
+        print "Reason: %s" % job['reason']
+
 
 def lookforurl(username, task_id):
     """
@@ -175,94 +160,6 @@ def lookforurl(username, task_id):
         outurllist.append(subtask["destination_path"])
         destendpoint.append(re.split("#",subtask["destination_endpoint"])[1])
     return inurllist, outurllist, destendpoint
-
-def preferred_activation(username, endpoint_name, myproxy_username):
-    user_credential_path=os.getcwd()+"/credential.pem"
-    print "==Activating %s ==" % endpoint_name
-    api = TransferAPIClient(username, cert_file=user_credential_path)
-    api.set_debug_print(False, False)
-    try:
-        code, message, data = api.endpoint(endpoint_name)
-        if not data["activated"]:
-            try:
-                print "==Try autoactivation=="
-                code, message, data = api.endpoint_autoactivate(endpoint_name)
-            except:
-                print "Cannot autoactivate"
-    except:
-        pass
-    
-    try:
-        code, message, data = api.endpoint(endpoint_name)
-    except:
-        data={'activated': "Unavailable"}
-
-    if not data["activated"]: # and data["activated"] == "Unavailable":
-        try:
-            if myproxy_username != "none":
-                print "==Try myproxy for %s ==" % myproxy_username
-                status, message, data = api.endpoint_autoactivate(endpoint_name)
-                data.set_requirement_value("myproxy", "username", myproxy_username)
-                from getpass import getpass
-                passphrase = getpass()
-                data.set_requirement_value("myproxy", "passphrase", passphrase)
-                api.endpoint_activate(endpoint_name, data)
-                #activer=[username,"-c",os.getcwd()+"/credential.pem"]
-                #api, _ = create_client_from_args(activer)
-                #conditional_activation(endpoint_name,myproxy_username)
-                code, message, data = api.endpoint(endpoint_name)
-            else:
-                raise 
-        except:
-            print "==Local proxy activation=="
-            _, _, reqs = api.endpoint_activation_requirements(endpoint_name, type="delegate_proxy")
-            #print "endpoint_name",endpoint_name
-            #print reqs
-            public_key = reqs.get_requirement_value("delegate_proxy", "public_key")
-            #print public_key
-            proxy = x509_proxy.create_proxy_from_file(user_credential_path, public_key)
-            #print "proxy"
-            #print proxy
-            reqs.set_requirement_value("delegate_proxy", "proxy_chain", proxy)
-            #print reqs
-            result = api.endpoint_activate(endpoint_name, reqs)
-            #print result
-            #status, message, data = api.endpoint_autoactivate(endpoint_name)
-            #print data["code"]
-
-
-
-
-def conditional_activation(endpoint_name,site_username):
-    api.endpoint_autoactivate(endpoint_name)
-    code, reason, endpoint_list = api.endpoint_list(limit=100)
-    #print "Found %d endpoints for user %s:" % (endpoint_list["length"], api.username)
-    for ep in endpoint_list["DATA"]:
-        if ep["name"] == endpoint_name:
-                if ep["activated"]:
-                        print " %s is already active. " % (endpoint_name)
-                else:
-                        print " Activating %s " % (endpoint_name)
-                        status, message, data = api.endpoint_autoactivate(endpoint_name)
-                        data.set_requirement_value("myproxy", "username", site_username)
-                        from getpass import getpass
-                        passphrase = getpass()
-                        data.set_requirement_value("myproxy", "passphrase", passphrase)
-                        api.endpoint_activate(endpoint_name, data)
-
-def display_activation(endpoint_name):
-    print "=== Endpoint pre-activation ==="
-    display_endpoint(endpoint_name)
-    print
-    code, reason, result = api.endpoint_autoactivate(endpoint_name,
-                                                     if_expires_in=600)
-    if result["code"].startswith("AutoActivationFailed"):
-        print "Auto activation failed, ls and transfers will likely fail!"
-    print "result: %s (%s)" % (result["code"], result["message"])
-    print "=== Endpoint post-activation ==="
-    display_endpoint(endpoint_name)
-    print
-
 
 def display_tasksummary():
     print " Here: ",api.task_list()
