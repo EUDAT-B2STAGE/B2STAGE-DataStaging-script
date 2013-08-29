@@ -1,0 +1,27 @@
+##################################################################################
+#Stage out
+##################################################################################
+
+./datastager.py out seed -p /CINECA01/home/cin_staff/gmariani/testGO/CINECA01/home/EUDAT_EPOS/EPOSReplica/archive/ -y 2008 -n IV -s CAFR -c HHE -u cin0641a --ss cinecaRepoSingl --ds GSI-PLX --dd /gpfs/scratch/userinternal/cin0641a/DS-Test/
+
+./datastager.py out irods -p /CINECA/home/gmariani/testGO/logo -u cin0641a --ss irods-dev --ds GSI-PLX --dd /gpfs/scratch/userinternal/cin0641a/DS-Test/
+
+./datastager.py out url --url irods://data.repo.cineca.it:1247/CINECA01/home/EUDAT_EPOS/EPOSReplica/archive/2008/IV/CAFR/HHE.D/IV.CAFR..HHE.D.2008.239 -u cin0641a --ds GSI-PLX --dd /gpfs/scratch/userinternal/cin0641a/DS-Test/
+
+./datastager.py out url -UF /home/jack/CINECA/SVN/EUDAT/Sandbox/Data-Staging/Island2/url.file.example -u cin0641a --ds GSI-PLX --dd /gpfs/scratch/userinternal/cin0641a/DS-Test/
+
+./datastager.py out pid --pid 11100/00000168-8ded-11e2-8685-e41f13eb41b2 -u cin0641a --ds GSI-PLX --dd /gpfs/scratch/userinternal/cin0641a/DS-Test/
+
+./datastager.py out pid -PF /home/jack/CINECA/SVN/EUDAT/Sandbox/Data-Staging/Island2/pid.file.example -u cin0641a --ds GSI-PLX --dd /gpfs/scratch/userinternal/cin0641a/DS-Test/
+
+
+##################################################################################
+#Stage in
+##################################################################################
+
+./datastager.py in taskid -u cin0641a --ss GSI-PLX --sd /gpfs/scratch/userinternal/cin0641a/DS-Test/ -p file.example --ds cinecaRepoSingl --dd  /CINECA01/home/cin_staff/gmariani/testPID/
+
+./datastager.py in taskid -u cin0641a --ss GSI-PLX --sd /gpfs/scratch/userinternal/cin0641a/DS-Test/ -pF /home/jack/CINECA/SVN/EUDAT/Sandbox/Data-Staging/Island2/task.file.example --ds cinecaRepoSingl --dd  /CINECA01/home/cin_staff/gmariani/testPID/
+
+./datastager.py in pid -u cin0641a --taskid c9d138be-ab56-11e2-97d0-123139404f2e
+
