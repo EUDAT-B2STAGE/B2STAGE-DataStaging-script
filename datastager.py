@@ -417,7 +417,7 @@ if arguments.direction == "in":
             for url, ep in urlendpoint.items():
                 if ep == destendpoint[0]:
                     endpoint=url
-            if !endpoint:
+            if endpoint=="":
                 print "The server "+destendpoint[0]+" is not mapped to a GO enpoint in datastagerconfig" 
                 sys.exit(0)
 
