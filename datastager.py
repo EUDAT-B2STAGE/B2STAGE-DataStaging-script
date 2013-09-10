@@ -140,7 +140,7 @@ def irodssource(arguments):
 def pidsource(arguments):
     if arguments.pid:
         argument=formatter("pid",arguments.pid.rstrip())
-        print "PID: "+argument
+        #print "PID: "+argument
         os.system(iPATH+'/irule -F URLselecter.r '+argument+' > json_file')
         sslist=jsonformatter()
         return sslist[0]
@@ -152,9 +152,9 @@ def pidsource(arguments):
         open("json_file", 'w').close()
 # Populate it    
         for pid in pidlist:
-            print "pid: "+pid
+            #print "pid: "+pid
             argument=formatter("pid",pid.rstrip())
-            print "pid: "+argument
+            #print "pid: "+argument
             os.system(iPATH+'/irule -F URLselecter.r '+argument+' >> json_file')
         sslist = jsonformatter()
         if not all_same(sslist):

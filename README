@@ -94,3 +94,44 @@ Usage
 -----
 
 See datastager -h 
+
+
+Troubleshooting
+---------------
+
+Error
+~~~~~
+IOError: [Errno 2] No such file or directory: '/path/to/datastagerconfig.py'
+Solution
+~~~~~~~~
+Copy datastagerconfig.py.example to datastagerconfig.py and edit it accordingly to your
+system
+
+Error
+~~~~~
+globusonline.transfer.api_client.ClientError: ClientError.NotFound (404
+Not Found): Subtask details are not available for this task, use the
+successful_transfers API instead.
+Solution
+~~~~~~~~
+Upgrade your installation to, at least, release-2.0
+
+Error
+~~~~~
+globusonline.transfer.api_client.ClientError: ClientError.AuthenticationFailed
+(400 Authentication Failed): You must authenticate to this service using a signed
+cookie from www.globusonline.org or an x509 certificate associated with your CLI
+account and an x509 username cookie or header. If you just created your account,
+your account may still be propagating, so please try again in a minute.
+Solution
+~~~~~~~~
+Check that the public part of the proxy (usercert.pem) is associated in GO and
+that you are using the right username (the one used to login to GO). 
+
+Error
+~~~~~
+When using GC as endpoint the file does not exist.
+Solution
+~~~~~~~~
+GC put the files in the home of the user so the path must be relative to that home
+directory.
