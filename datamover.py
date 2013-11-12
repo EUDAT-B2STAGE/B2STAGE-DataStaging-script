@@ -158,6 +158,31 @@ def canceltask(username, task_id):
         print "The task already succeeded"
         sys.exit(0)
 
+def detailsoftask(username, task_id):
+    """
+    Uses module global API client instance.
+    """
+    activer=[username,"-c",os.getcwd()+"/credential-"+username+".pem"]
+    global api
+    api, _ = create_client_from_args(activer)
+
+    oldstdout=sys.stdout
+    sys.stdout = open(os.devnull,'w')
+    status, reason, result = api.task(task_id)
+    sys.stdout = oldstdout # enable output
+    if result["status"] != "SUCCEEDED":
+        print "The process is not finished yet: its status is "+result["status"]; print
+        status, reason, result = api.task_event_list(task_id)
+        print "The operation has the following details:"; print
+        data=result['DATA'][0]
+        for key, value in data.iteritems():    
+            print key, value; print
+        print    
+        sys.exit(0)
+    else:
+        print "The task already succeeded"
+        sys.exit(0)
+
 def lookforurl(username, task_id):
     """
     Uses module global API client instance.

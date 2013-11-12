@@ -185,6 +185,8 @@ or as follow for stage in:
                           --ds dest-end-point --dd dest-dir
 ./datastager.py in pid --taskid the-taskID-of-the-processr-you-want-thepid 
                        -u GO-user 
+./datastager.py in details --taskid the-taskID-of-the-process-you-want-details 
+                       -u GO-user 
 ./datastager.py in cancel --taskid the-taskID-of-the-process-you-want-to-cancel 
                        -u GO-user 
 
@@ -195,17 +197,15 @@ For example:
 
 parser = argparse.ArgumentParser(description=" Data stager: move a bounce of data inside or outside iRODS via GridFTP. \n The -d options requires both positional arguments.", 
         formatter_class=RawTextHelpFormatter)
-taskgroup = parser.add_argument_group('taskid', 'Options specific to "stage in {pid,cancel} --taskid"')
-irodsgroup = parser.add_argument_group('irods', 'Options specific to irods')
+taskgroup = parser.add_argument_group('taskid', 'Options specific to "stage in {pid,details,cancel} --taskid"')
 urlgroup = parser.add_argument_group('url', 'Options specific to url (mutually exclusive)')
 pidgroup = parser.add_argument_group('pid', 'Options specific to pid (mutually exclusive)')
-cancelgroup = parser.add_argument_group('cancel', 'Options specific to cancel (mutually exclusive)')
 # Examples
 parser.add_argument("-d", "--details", help="a longer description and some usage examples (invoke with \"datastager.py in pid -d\")", action="store_true")
 # Stage in or stage out
 parser.add_argument("direction",choices=['in','out'],default="NULL",help=" the direction of the stage: in or out")
 # Kind of source: url or PID
-parser.add_argument("kind",choices=['irods','pid','url','taskid','cancel'],default="NULL",help=" the description of your data")
+parser.add_argument("kind",choices=['irods','pid','url','taskid','details','cancel'],default="NULL",help=" the description of your data")
 # General informations
 parser.add_argument("-p", "--path", help="the path of your file (iRODS collection or local file system depending on the circumstances)", 
         action="store", dest="path")
@@ -386,6 +386,16 @@ if arguments.direction == "in":
         if arguments.taskid:
             api = None
             inurllist, outurllist, destendpoint = datamover.canceltask(str(arguments.user), str(arguments.taskid))
+            sys.exit(0)
+
+        else:
+            "You did not provide the taskid!"
+            sys.exit(1)
+    elif arguments.kind == "details":
+        print "The transfer activity corresponding to the given task follows."
+        if arguments.taskid:
+            api = None
+            inurllist, outurllist, destendpoint = datamover.detailsoftask(str(arguments.user), str(arguments.taskid))
             sys.exit(0)
 
         else:
