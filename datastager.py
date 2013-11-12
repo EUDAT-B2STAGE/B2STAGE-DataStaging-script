@@ -68,40 +68,6 @@ def jsonformatter():
     #print json_results
     return endpoint
 
-def seedsource(arguments):
-    argument=''
-    if arguments.path:
-        argument = argument+formatter("path",arguments.path)
-    else:
-        print "You selected seed so the path is required"
-        sys.exit(1)
-    if arguments.year:
-        argument = argument+formatter("year",arguments.year)
-    else:
-        print "You selected seed so the year is required"
-        sys.exit(1)
-    if arguments.network:
-        argument = argument+formatter("network",arguments.network)
-    else:
-        print "You selected seed so the network is required"
-        sys.exit(1)
-    if arguments.channel:
-        argument = argument+formatter("channel",arguments.channel)
-    else:
-        print "You selected seed so the channel is required"
-        sys.exit(1)
-    if arguments.station:
-        argument = argument+formatter("station",arguments.station)
-    else:
-        print "You selected seed so the station is required"
-        sys.exit(1)
-    if arguments.user is None:
-        print " The username is mandatory! "
-        sys.exit(1)
-
-    #print "SEED: "+argument
-    os.system(iPATH+'/irule -F seedselecter.r '+argument+' > json_file')
-
 def irodssource(arguments):
     argument=''
     if arguments.path:
@@ -205,10 +171,6 @@ Invoke as follow for stage out:
                           -u GO-user 
                           --ss source-end-point --ds dest-end-point --dd dest-dir
 or
-./datastager.py out seed -p path -y year -n network -s station -c channel 
-                         -u GO-user 
-                         --ss source-end-point --ds dest-end-point --dd dest-dir
-or
 ./datastager.py out pid --pid prefix/pid 
                         -u GO-user 
                         --ds dest-end-point --dd dest-dir
@@ -221,27 +183,29 @@ or as follow for stage in:
 ./datastager.py in taskid -u GO-user 
                           --ss source-end-point --sd source-dir -p path
                           --ds dest-end-point --dd dest-dir
-./datastager.py in pid --taskid the-taskID-of-the-process you-want-thepid 
+./datastager.py in pid --taskid the-taskID-of-the-processr-you-want-thepid 
+                       -u GO-user 
+./datastager.py in cancel --taskid the-taskID-of-the-process-you-want-to-cancel 
                        -u GO-user 
 
 For example: 
-./datastager.py -p /home/irods/data/archive -y 2004 -n MN -s AQU -c BHE -u cin0641a --ss ingv --ds vzSARA --dd vzSARA/home/rods#CINECA/
+./datastager.py -p /path/to/file -u cin0641a --ss ingv --ds vzSARA --dd vzSARA/home/rods#CINECA/
     """
     sys.exit(0)
 
 parser = argparse.ArgumentParser(description=" Data stager: move a bounce of data inside or outside iRODS via GridFTP. \n The -d options requires both positional arguments.", 
         formatter_class=RawTextHelpFormatter)
-taskgroup = parser.add_argument_group('taskid', 'Options specific to stage in taskid')
-seedgroup = parser.add_argument_group('seed', 'Options specific to seed')
+taskgroup = parser.add_argument_group('taskid', 'Options specific to "stage in {pid,cancel} --taskid"')
 irodsgroup = parser.add_argument_group('irods', 'Options specific to irods')
 urlgroup = parser.add_argument_group('url', 'Options specific to url (mutually exclusive)')
 pidgroup = parser.add_argument_group('pid', 'Options specific to pid (mutually exclusive)')
+cancelgroup = parser.add_argument_group('cancel', 'Options specific to cancel (mutually exclusive)')
 # Examples
-parser.add_argument("-d", "--details", help="a longer description and some usage examples", action="store_true")
+parser.add_argument("-d", "--details", help="a longer description and some usage examples (invoke with \"datastager.py in pid -d\")", action="store_true")
 # Stage in or stage out
 parser.add_argument("direction",choices=['in','out'],default="NULL",help=" the direction of the stage: in or out")
-# Kind of source: seed, url or PID
-parser.add_argument("kind",choices=['seed','irods','pid','url','taskid'],default="NULL",help=" the description of your data")
+# Kind of source: url or PID
+parser.add_argument("kind",choices=['irods','pid','url','taskid','cancel'],default="NULL",help=" the description of your data")
 # General informations
 parser.add_argument("-p", "--path", help="the path of your file (iRODS collection or local file system depending on the circumstances)", 
         action="store", dest="path")
@@ -255,15 +219,6 @@ parser.add_argument("-key", "--secretekey", help="the key of your certificate", 
         dest="key")
 parser.add_argument("-certdir", "--trustedca", help="your trusted CA", action="store",
         dest="certdir")
-# SEED informations
-seedgroup.add_argument("-y", "--year", help="the year of interest", action="store",
-        dest="year")
-seedgroup.add_argument("-n", "--network", help="the network of interest",
-        action="store", dest="network")
-seedgroup.add_argument("-c", "--channel", help="the channel of interest",
-        action="store", dest="channel")
-seedgroup.add_argument("-s", "--station", help="the station of interest", action="store",
-        dest="station")
 # iRODS informations
 
 # PID
@@ -342,11 +297,7 @@ print ""
 
 # Stage out
 if arguments.direction == "out":
-    if arguments.kind == "seed":
-        seedsource(arguments)
-        print "Source end-point: "+arguments.src_site
-        #sys.exit(1) 
-    elif arguments.kind == "irods":
+    if arguments.kind == "irods":
         if arguments.path and arguments.pathfile:
             print "Only one between -p and -pF is allowed"
             sys.exit(1)
@@ -368,7 +319,7 @@ if arguments.direction == "out":
         print "Source end-point: "+arguments.src_site
         #sys.exit(1) 
     else:
-        print "You are staging out so you can only specify seed or PID or URL!"
+        print "You are staging out so you can only specify PID or URL!"
         sys.exit(1)
         
 
@@ -430,6 +381,13 @@ if arguments.direction == "in":
                 #print argument
                 os.system(iPATH+'/irule -F PIDselecter.r '+argument+' | awk \'{print $2}\' >> pid.file')
             sys.exit(0)
+    elif arguments.kind == "cancel":
+        print "The transfer activity corresponding to the given task is going to be cancelled."
+        if arguments.taskid:
+            api = None
+            inurllist, outurllist, destendpoint = datamover.canceltask(str(arguments.user), str(arguments.taskid))
+            sys.exit(0)
+
         else:
             "You did not provide the taskid!"
             sys.exit(1)

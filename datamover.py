@@ -135,6 +135,29 @@ def mover(username, src_site, dst_site, dst_dir):
     sys.stdout = oldstdout # enable output
     print "Its status is "+result["status"]; print
 
+def canceltask(username, task_id):
+    """
+    Uses module global API client instance.
+    """
+    activer=[username,"-c",os.getcwd()+"/credential-"+username+".pem"]
+    global api
+    api, _ = create_client_from_args(activer)
+
+    oldstdout=sys.stdout
+    sys.stdout = open(os.devnull,'w')
+    status, reason, result = api.task(task_id)
+    sys.stdout = oldstdout # enable output
+    if result["status"] != "SUCCEEDED":
+        print "The process is not finished yet: its status is "+result["status"]; print
+        print "It is going to be cancelled."; print
+        status, reason, result = api.task_cancel(task_id)
+        print "The cancel operation exited with the following message from GO:"
+        print result["message"]; print
+        sys.exit(0)
+    else:
+        print "The task already succeeded"
+        sys.exit(0)
+
 def lookforurl(username, task_id):
     """
     Uses module global API client instance.
