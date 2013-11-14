@@ -6,31 +6,38 @@ from argparse import RawTextHelpFormatter
 import datetime
 import json
 import re
+from threading import Thread
 
 import datamover
 
+# To configure the following, please edit datastagerconfig.py
 #iPATH='/home/jack/CINECA/GridTools/iRODS/iRODS/clients/icommands/bin/'
 
-#urlendpoint={
-    #'data.repo.cineca.it': "cinecaRepoSingl",
-    #'irods-dev.cineca.it': "irods-dev",
-    #'dtn01.hector.ac.uk': "dtn01",
-    #'eudat-irodsdev.epcc.ed.ac.uk': "eudat-irodsdev"
-#}
+# Load configurations from datastagerconfig.py
 execfile(os.getcwd()+"/datastagerconfig.py")
 
+# Write y as an argument for iRODS in wich a is the variable and b the value
 def formatter(a,x):
     y='"*'+a+'=\\"'+x+'\\"" '
     return y
 
+# Chech if the arguments of an array differ
 def all_same(items):
     return all(x == items[0] for x in items)
 
-#def mapserver(url):
-    #urlendpoint={'data.repo.cineca.it': "cinecaRepoSingl", 'irods-dev.cineca.it': "irods-dev"}
-    #endpoint=urlendpoint[url]
-    #return endpoint
+# Get the url given the PID
+def pidfromurl(argument):
+    os.system(iPATH+'/irule -F URLselecter.r '+argument+' >> json_file')
 
+# Get the PID given the url
+def urlfrompid(argument):
+    os.system(iPATH+'/irule -F PIDselecter.r '+argument+' > json_file')
+
+# Write the PID to pid.file
+def pidtofile(argument):
+    os.system(iPATH+'/irule -F PIDselecter.r '+argument+' | awk \'{print $2}\' >> pid.file')
+
+# Write to json_file the json list of file to be transferred. 
 def jsonformatter():
 # Read the string from the file 
     fo = open("json_file", "r")
@@ -52,6 +59,7 @@ def jsonformatter():
         url=re.split("//",sublista[1])[1]
         prepath=re.split("^\d\d\d\d",sublista[2])[1].rstrip()
         path.append(prepath)
+        urlendpoint = datamover.defineurlendpoint(str(arguments.user))
         try:
             endpoint.append(urlendpoint[url])
         except:
@@ -95,7 +103,6 @@ def irodssource(arguments):
         json_results=json.dumps(path)
         jsonlist.write(json_results)
         jsonlist.close
- 
     else: 
         print "You selected irods so one between path and pathFile is required"
         sys.exit(1)
@@ -103,11 +110,11 @@ def irodssource(arguments):
         print " The username is mandatory! "
         sys.exit(1)
 
+# Write to json_file (via jsonformatter) the list of url for the given dest endpoint. 
 def pidsource(arguments):
     if arguments.pid:
         argument=formatter("pid",arguments.pid.rstrip())
-        #print "PID: "+argument
-        os.system(iPATH+'/irule -F URLselecter.r '+argument+' > json_file')
+        pidfromurl(argument)
         sslist=jsonformatter()
         return sslist[0]
     elif arguments.pidfile:
@@ -116,16 +123,23 @@ def pidsource(arguments):
         fo.close()
 # Empty the file    
         open("json_file", 'w').close()
-# Populate it    
+# Create and start the thread list to call pidfromurl in parallel
+        threadlist=[]
         for pid in pidlist:
-            #print "pid: "+pid
             argument=formatter("pid",pid.rstrip())
-            #print "pid: "+argument
-            os.system(iPATH+'/irule -F URLselecter.r '+argument+' >> json_file')
+            T=Thread(target=pidfromurl,args=([argument]))
+            T.start()
+            threadlist.append(T)
+        for t in threadlist:
+            t.join()
+        #print "Exiting Main Thread"
         sslist = jsonformatter()
         if not all_same(sslist):
             print "All the pid should be mapped to the same GO endpoint"
             sys.exit(1)
+        if sslist == []:
+            print "None of the url correspond to an exixting file"
+            sys.exit()
         return sslist[0]
     else:
         print "You selected pid so the pid is required"
@@ -135,7 +149,7 @@ def urlsource(arguments):
     if arguments.url:
         argument=formatter("url",arguments.url)
         #print "URL: "+argument
-        os.system(iPATH+'/irule -F PIDselecter.r '+argument+' > json_file')
+        urlfrompid(argument)
         fo = open("json_file", "r")
         strg = fo.readlines();
         fo.close()
@@ -144,8 +158,6 @@ def urlsource(arguments):
         arguments.pid=re.split("Output: ", strg[0])[1].rstrip()
         #print "pid "+arguments.pid
         src_site=pidsource(arguments)
-        #ss="iiidd"
-        #ss=jsonformatter()
         return src_site
     elif arguments.urlfile:
         fo = open(arguments.urlfile, "r")
@@ -153,10 +165,16 @@ def urlsource(arguments):
         fo.close()
 # Empty the file    
         open("json_file", 'w').close()
-# Populate it    
+# Create and start the thread list to call urlfrompid in parallel
+        threadlist=[]
         for url in urllist:
             argument=formatter("url",url.rstrip())
-            os.system(iPATH+'/irule -F PIDselecter.r '+argument+' | tr -d "Output: " >> pidfile')
+            T=Thread(target=urlfrompid,args=([argument]))
+            T.start()
+            threadlist.append(T)
+        for t in threadlist:
+            t.join()
+        #print "Exiting Main Thread"
         arguments.pidfile="pidfile"
         src_site=pidsource(arguments)
         return src_site
@@ -363,23 +381,27 @@ if arguments.direction == "in":
             if not all_same(destendpoint):
                 print "All the pid should be mapped to the same GO endpoint"
                 sys.exit(1)
-            #endpoint = urlendpoint[destendpoint[0]]
-            #print destendpoint[0]
+            urlendpoint = datamover.defineurlendpoint(str(arguments.user))
             for url, ep in urlendpoint.items():
-                if ep == destendpoint[0]:
+                if ep == arguments.user+"#"+destendpoint[0]:
                     endpoint=url
             if endpoint=="":
                 print "The server "+destendpoint[0]+" is not mapped to a GO enpoint in datastagerconfig" 
                 sys.exit(0)
-
             #print endpoint
             fo = open("pid.file", "w").close
+# Create and start the thread list to call urlfrompid in parallel
+            threadlist=[]
             for url in outurllist:
                 plainurl = url.replace("//","/")
                 argument = formatter("url","irods://"+endpoint+":1247"+plainurl)
                 argument = formatter("url","\*"+plainurl)
-                #print argument
-                os.system(iPATH+'/irule -F PIDselecter.r '+argument+' | awk \'{print $2}\' >> pid.file')
+                T=Thread(target=pidtofile,args=([argument]))
+                T.start()
+                threadlist.append(T)
+            for t in threadlist:
+                t.join()
+            #print "Exiting Main Thread"
             sys.exit(0)
     elif arguments.kind == "cancel":
         print "The transfer activity corresponding to the given task is going to be cancelled."
@@ -387,7 +409,6 @@ if arguments.direction == "in":
             api = None
             inurllist, outurllist, destendpoint = datamover.canceltask(str(arguments.user), str(arguments.taskid))
             sys.exit(0)
-
         else:
             "You did not provide the taskid!"
             sys.exit(1)
@@ -395,9 +416,10 @@ if arguments.direction == "in":
         print "The transfer activity corresponding to the given task follows."
         if arguments.taskid:
             api = None
-            inurllist, outurllist, destendpoint = datamover.detailsoftask(str(arguments.user), str(arguments.taskid))
+            #urlendpoint = datamover.defineurlendpoint(str(arguments.user))
+            #print urlendpoint
+            datamover.detailsoftask(str(arguments.user), str(arguments.taskid))
             sys.exit(0)
-
         else:
             "You did not provide the taskid!"
             sys.exit(1)

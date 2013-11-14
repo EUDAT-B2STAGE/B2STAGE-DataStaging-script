@@ -61,7 +61,7 @@ def mover(username, src_site, dst_site, dst_dir):
     site_ep1 = src_site
     site_ep2 = dst_site
 
-    print "Please enter your myproxy username (\'none\' if you don\' have one). Note that griffin \"prefers\" myproxy ;-)"
+    print "Please enter your myproxy username (\'none\' if you don\' have one)."
     myproxy_username = sys.stdin.readline().rstrip()
 
     preferred_activation(username, site_ep1, myproxy_username)
@@ -158,6 +158,8 @@ def canceltask(username, task_id):
         print "The task already succeeded"
         sys.exit(0)
 
+# Given the username and the task_id detailsoftask prints at video some details
+# about the transfer, if it is still running. 
 def detailsoftask(username, task_id):
     """
     Uses module global API client instance.
@@ -173,8 +175,25 @@ def detailsoftask(username, task_id):
     if result["status"] != "SUCCEEDED":
         print "The process is not finished yet: its status is "+result["status"]; print
         status, reason, result = api.task_event_list(task_id)
+
+        #print "====== File info ======"
+        #print result
+        #for data in result["DATA"]:
+            #matchObj=re.search( r'(.*)Command(.*) .*',data["details"])
+            #if matchObj:
+                #containingfilename=matchObj.group(0)
+                #break
+        #filename=containingfilename.split()[2]    
+        #print filename
+        #api.file_list(filename) 
+        #print "====== File info end ======"; print
+
         print "The operation has the following details:"; print
-        data=result['DATA'][0]
+        try:
+            data=result["DATA"][0]
+        except:
+            print "The data are not available yet. Try in a few seconds again."
+            sys.exit(0)
         for key, value in data.iteritems():    
             print key, value; print
         print    
@@ -182,6 +201,28 @@ def detailsoftask(username, task_id):
     else:
         print "The task already succeeded"
         sys.exit(0)
+
+# This function query GO in order to return the urlendpoint dictionary
+def defineurlendpoint(username):
+    """
+    Uses module global API client instance.
+    """
+    activer=[username,"-c",os.getcwd()+"/credential-"+username+".pem"]
+    global api
+    api, _ = create_client_from_args(activer)
+     
+    urlendpoint={} 
+
+    #print; print "============= Retrieving  endpoint-list =============="
+    status, message, data = api.endpoint_list(filter="username:"+username,limit="99")
+    for ep_data in data["DATA"]:
+        value = ep_data["canonical_name"]
+        key   = ep_data["DATA"][0]["hostname"]
+        urlendpoint[key]=value
+    #print "============= endpoint-list retrivied =============="
+
+    return urlendpoint
+
 
 def lookforurl(username, task_id):
     """
