@@ -254,26 +254,27 @@ def lookforurl(username, task_id):
     destendpoint = []
     status, reason, result = api.get("/task/%s" % task_id)
     destendpoint.append(re.split("#",result["destination_endpoint"])[1])
-    #print destendpoint
-    #print status; print
-    #print reason; print
-    #print result; print
-    status, reason, result = api.get("/task/%s/successful_transfers" % task_id)
-    #status, reason, result = api.successful_transfers(task_id)
-    #print "Transfer status is: "+result["status"]
-    #print "Transfer command was: "+result["command"]
-    #print status; print
-    #print reason; print
-    #print result; print
-    #print result["subtask_link"]; print
-    #print result["subtask_link"]["resource"],type(result["subtask_link"]["resource"])
+
     inurllist    = []
     outurllist   = []
+    
+    status, reason, result = api.task_successful_transfers(task_id)
     for subtask in result["DATA"]:
         #print subtask
         #print subtask["source_path"], subtask["destination_path"], subtask["destination_endpoint"]
         inurllist.append(subtask["source_path"])
         outurllist.append(subtask["destination_path"])
+    
+    while result["next_marker"] != [] and result["next_marker"] != None:
+        #print result["next_marker"]
+        #print "There are more pid..."
+        status, reason, result = api.task_successful_transfers(task_id, marker=result["next_marker"])
+        for subtask in result["DATA"]:
+            #print subtask
+            #print subtask["source_path"], subtask["destination_path"], subtask["destination_endpoint"]
+            inurllist.append(subtask["source_path"])
+            outurllist.append(subtask["destination_path"])
+
     return inurllist, outurllist, destendpoint
 
 def preferred_activation(username, endpoint_name, myproxy_username):

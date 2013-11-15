@@ -48,7 +48,12 @@ def jsonformatter():
 # Fromat the string    
     path=[]
     endpoint=[]
+    strglistlength=len(strglist)
+    elementnumber=0
     for strg in strglist:
+        elementnumber=elementnumber+1
+        if elementnumber%25:
+            print "Element "+str(elementnumber)+" of "+str(strglistlength)
         lista = re.split(r'\s* \s*', strg.rstrip())
         if lista[1] == "None":
             print "An argument(pid, url...) does not exist. Continuing anyway!" 
@@ -127,22 +132,23 @@ def pidsource(arguments):
         threadlist=[]
         for pid in pidlist:
             argument=formatter("pid",pid.rstrip())
+            #print argument
             T=Thread(target=pidfromurl,args=([argument]))
             T.start()
             threadlist.append(T)
         for t in threadlist:
             t.join()
-        #print "Exiting Main Thread"
+        print "All pid(s) resolved to an url."
         sslist = jsonformatter()
         if not all_same(sslist):
-            print "All the pid should be mapped to the same GO endpoint"
+            print "All the pids should be mapped to the same GO endpoint!"
             sys.exit(1)
         if sslist == []:
-            print "None of the url correspond to an exixting file"
+            print "None of the url correspond to an exixting file!"
             sys.exit()
         return sslist[0]
     else:
-        print "You selected pid so the pid is required"
+        print "You selected pid so the pid is required!"
         sys.exit(1)
 
 def urlsource(arguments):
@@ -169,17 +175,18 @@ def urlsource(arguments):
         threadlist=[]
         for url in urllist:
             argument=formatter("url",url.rstrip())
+            #print argument
             T=Thread(target=urlfrompid,args=([argument]))
             T.start()
             threadlist.append(T)
         for t in threadlist:
             t.join()
-        #print "Exiting Main Thread"
+        print "All url(s) resolved to a pid."
         arguments.pidfile="pidfile"
         src_site=pidsource(arguments)
         return src_site
     else:
-        print "You selected url so the url is required"
+        print "You selected url so the url is required!"
         sys.exit(1)
 
 def details():
@@ -317,21 +324,21 @@ print ""
 if arguments.direction == "out":
     if arguments.kind == "irods":
         if arguments.path and arguments.pathfile:
-            print "Only one between -p and -pF is allowed"
+            print "Only one between -p and -pF is allowed!"
             sys.exit(1)
         irodssource(arguments)
         print "Source end-point: "+arguments.src_site
         #sys.exit(1) 
     elif arguments.kind == "url":
         if arguments.url and arguments.urlfile:
-            print "Only one between -U and -UF is allowed"
+            print "Only one between -U and -UF is allowed!"
             sys.exit(1)
         arguments.src_site=urlsource(arguments)
         print "Source end-point: "+arguments.src_site
         #sys.exit(1) 
     elif arguments.kind == "pid":
         if arguments.pid and arguments.pidfile:
-            print "Only one between -P and -PF is allowed"
+            print "Only one between -P and -PF is allowed!"
             sys.exit(1)
         arguments.src_site=pidsource(arguments)
         print "Source end-point: "+arguments.src_site
@@ -346,9 +353,9 @@ if arguments.direction == "in":
     if arguments.kind == "taskid":
         if arguments.path:
             if arguments.pathfile:
-                print "Only one between -p and -pF is allowed"
+                print "Only one between -p and -pF is allowed!"
                 sys.exit(1)
-            print "You are staging in so save the taskID in order to know the PID(s)"
+            print "You are staging in so save the taskID in order to know the PID(s)."
             file_list=[]
             file_list.append(arguments.src_dir+"/"+arguments.path)
             json_results=json.dumps(file_list)
@@ -368,10 +375,10 @@ if arguments.direction == "in":
             fo.write(json_results);
             fo.close()
         else:
-            print "One between -p and -pF is mandatory"
+            print "One between -p and -pF is mandatory."
             sys.exit(1)
     elif arguments.kind == "pid":
-        print "The list of the corresponding PID is going to be saved in pid.file"
+        print "The list of the corresponding PID is going to be saved in pid.file."
         if arguments.taskid:
             api = None
             inurllist, outurllist, destendpoint = datamover.lookforurl(str(arguments.user), str(arguments.taskid))
@@ -379,14 +386,14 @@ if arguments.direction == "in":
             #print outurllist
             #print destendpoint
             if not all_same(destendpoint):
-                print "All the pid should be mapped to the same GO endpoint"
+                print "All the pid should be mapped to the same GO endpoint."
                 sys.exit(1)
             urlendpoint = datamover.defineurlendpoint(str(arguments.user))
             for url, ep in urlendpoint.items():
                 if ep == arguments.user+"#"+destendpoint[0]:
                     endpoint=url
             if endpoint=="":
-                print "The server "+destendpoint[0]+" is not mapped to a GO enpoint in datastagerconfig" 
+                print "The server "+destendpoint[0]+" is not mapped to a GO enpoint in datastagerconfig." 
                 sys.exit(0)
             #print endpoint
             fo = open("pid.file", "w").close
@@ -394,14 +401,15 @@ if arguments.direction == "in":
             threadlist=[]
             for url in outurllist:
                 plainurl = url.replace("//","/")
-                argument = formatter("url","irods://"+endpoint+":1247"+plainurl)
+                #argument = formatter("url","irods://"+endpoint+":1247"+plainurl)
                 argument = formatter("url","\*"+plainurl)
+                #print argument
                 T=Thread(target=pidtofile,args=([argument]))
                 T.start()
                 threadlist.append(T)
             for t in threadlist:
                 t.join()
-            #print "Exiting Main Thread"
+            print "All (available) pid(s) wrote in pid.file."
             sys.exit(0)
     elif arguments.kind == "cancel":
         print "The transfer activity corresponding to the given task is going to be cancelled."
