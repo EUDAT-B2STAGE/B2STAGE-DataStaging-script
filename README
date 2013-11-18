@@ -54,11 +54,9 @@ The script consists of the following files:
 * datastagerconfig.py.example template for the required (cp to) datastagerconfig.py file (script >1.1)
 * PIDselecter.r the rule which gives you the PID of a file given its URL
 * URLselecter.r the rule which gives you the URL of a file given its PID
-* seedselecter.r the rule which gives you the PATH of a file given its seismological data (specific for the EPOS use case)
 
 * datastager.py the main script
 * datamover.py the script which invokes GO 
-* seedselecter.py the script which construct the path of the seismological data (specific for the EPOS use case)
 
 * example some concrete example
 * pid.file.example an example of PID file, i.e. a list of PIDs (to be used with -PF option)

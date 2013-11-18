@@ -19,9 +19,9 @@
 # Stage in
 ##################################################################################
 
-./datastager.py in taskid -u cin0641a --ss GSI-PLX --sd /gpfs/scratch/userinternal/cin0641a/DS-Test/ -p file.example --ds cinecaRepoSingl --dd  /CINECA01/home/cin_staff/gmariani/testPID/
+./datastager.py in path -u cin0641a --ss GSI-PLX --sd /gpfs/scratch/userinternal/cin0641a/DS-Test/ -p file.example --ds cinecaRepoSingl --dd  /CINECA01/home/cin_staff/gmariani/testPID/
 
-./datastager.py in taskid -u cin0641a --ss GSI-PLX --sd /gpfs/scratch/userinternal/cin0641a/DS-Test/ -pF /home/jack/CINECA/SVN/EUDAT/Sandbox/Data-Staging/Island2/task.file.example --ds cinecaRepoSingl --dd  /CINECA01/home/cin_staff/gmariani/testPID/
+./datastager.py in path -u cin0641a --ss GSI-PLX --sd /gpfs/scratch/userinternal/cin0641a/DS-Test/ -pF /home/jack/CINECA/SVN/EUDAT/Sandbox/Data-Staging/Island2/task.file.example --ds cinecaRepoSingl --dd  /CINECA01/home/cin_staff/gmariani/testPID/
 
 ./datastager.py in pid -u cin0641a --taskid c9d138be-ab56-11e2-97d0-123139404f2e
 
