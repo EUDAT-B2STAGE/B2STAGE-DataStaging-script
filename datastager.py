@@ -192,37 +192,37 @@ def urlsource(arguments):
 def details():
     print """
 Invoke as follow for stage out: 
+----------------------------------------------------------------------------------    
 ./datastager.py out irods -p path  
                           -u GO-user 
                           --ss source-end-point --ds dest-end-point --dd dest-dir
-or
 ./datastager.py out pid --pid prefix/pid 
                         -u GO-user 
                         --ds dest-end-point --dd dest-dir
-or
 ./datastager.py out url --url full-url
                         -u GO-user 
                         --ds dest-end-point --dd dest-dir
 
+----------------------------------------------------------------------------------    
 or as follow for stage in:
-./datastager.py in taskid -u GO-user 
-                          --ss source-end-point --sd source-dir -p path
-                          --ds dest-end-point --dd dest-dir
+./datastager.py in path -u GO-user 
+                        --ss source-end-point --sd source-dir -p path
+                        --ds dest-end-point --dd dest-dir
 ./datastager.py in pid --taskid the-taskID-of-the-processr-you-want-thepid 
                        -u GO-user 
+
+----------------------------------------------------------------------------------    
+or as follow for cancel the stage (in or out) operation or get details about it:
 ./datastager.py in details --taskid the-taskID-of-the-process-you-want-details 
                        -u GO-user 
-./datastager.py in cancel --taskid the-taskID-of-the-process-you-want-to-cancel 
+./datastager.py out cancel --taskid the-taskID-of-the-process-you-want-to-cancel 
                        -u GO-user 
-
-For example: 
-./datastager.py -p /path/to/file -u cin0641a --ss ingv --ds vzSARA --dd vzSARA/home/rods#CINECA/
     """
     sys.exit(0)
 
 parser = argparse.ArgumentParser(description=" Data stager: move a bounce of data inside or outside iRODS via GridFTP. \n The -d options requires both positional arguments.", 
         formatter_class=RawTextHelpFormatter)
-taskgroup = parser.add_argument_group('taskid', 'Options specific to "stage in {pid,details,cancel} --taskid"')
+taskgroup = parser.add_argument_group('taskid', 'Options specific to "stage {in,out} {pid(in only),details,cancel} --taskid"')
 urlgroup = parser.add_argument_group('url', 'Options specific to url (mutually exclusive)')
 pidgroup = parser.add_argument_group('pid', 'Options specific to pid (mutually exclusive)')
 # Examples
@@ -230,7 +230,7 @@ parser.add_argument("-d", "--details", help="a longer description and some usage
 # Stage in or stage out
 parser.add_argument("direction",choices=['in','out'],default="NULL",help=" the direction of the stage: in or out")
 # Kind of source: url or PID
-parser.add_argument("kind",choices=['irods','pid','url','taskid','details','cancel'],default="NULL",help=" the description of your data")
+parser.add_argument("kind",choices=['irods','pid','url','path','details','cancel'],default="NULL",help=" the description of your data")
 # General informations
 parser.add_argument("-p", "--path", help="the path of your file (iRODS collection or local file system depending on the circumstances)", 
         action="store", dest="path")
@@ -319,6 +319,25 @@ else:
         os.system('grid-proxy-init'+grid_proxy_init_options)
 print ""
 
+# Cencel or Details
+if arguments.kind == "cancel":
+    print "The transfer activity corresponding to the given task is going to be cancelled."
+    if arguments.taskid:
+        api = None
+        inurllist, outurllist, destendpoint = datamover.canceltask(str(arguments.user), str(arguments.taskid))
+        sys.exit(0)
+    else:
+        "You did not provide the taskid!"
+        sys.exit(1)
+elif arguments.kind == "details":
+    print "The transfer activity corresponding to the given task follows."
+    if arguments.taskid:
+        api = None
+        #urlendpoint = datamover.defineurlendpoint(str(arguments.user))
+        #print urlendpoint
+        datamover.detailsoftask(str(arguments.user), str(arguments.taskid))
+        sys.exit(0)
+
 
 # Stage out
 if arguments.direction == "out":
@@ -344,13 +363,13 @@ if arguments.direction == "out":
         print "Source end-point: "+arguments.src_site
         #sys.exit(1) 
     else:
-        print "You are staging out so you can only specify PID or URL!"
+        print "You are staging out so you can only specify iRODS or PID or URL!"
         sys.exit(1)
         
 
 # Stage in 
 if arguments.direction == "in":
-    if arguments.kind == "taskid":
+    if arguments.kind == "path":
         if arguments.path:
             if arguments.pathfile:
                 print "Only one between -p and -pF is allowed!"
@@ -410,23 +429,6 @@ if arguments.direction == "in":
             for t in threadlist:
                 t.join()
             print "All (available) pid(s) wrote in pid.file."
-            sys.exit(0)
-    elif arguments.kind == "cancel":
-        print "The transfer activity corresponding to the given task is going to be cancelled."
-        if arguments.taskid:
-            api = None
-            inurllist, outurllist, destendpoint = datamover.canceltask(str(arguments.user), str(arguments.taskid))
-            sys.exit(0)
-        else:
-            "You did not provide the taskid!"
-            sys.exit(1)
-    elif arguments.kind == "details":
-        print "The transfer activity corresponding to the given task follows."
-        if arguments.taskid:
-            api = None
-            #urlendpoint = datamover.defineurlendpoint(str(arguments.user))
-            #print urlendpoint
-            datamover.detailsoftask(str(arguments.user), str(arguments.taskid))
             sys.exit(0)
         else:
             "You did not provide the taskid!"

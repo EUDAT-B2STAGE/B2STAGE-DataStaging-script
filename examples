@@ -1,5 +1,5 @@
 ##################################################################################
-#Stage out
+# Stage out
 ##################################################################################
 
 ./datastager.py out seed -p /CINECA01/home/cin_staff/gmariani/testGO/CINECA01/home/EUDAT_EPOS/EPOSReplica/archive/ -y 2008 -n IV -s CAFR -c HHE -u cin0641a --ss cinecaRepoSingl --ds GSI-PLX --dd /gpfs/scratch/userinternal/cin0641a/DS-Test/
@@ -16,7 +16,7 @@
 
 
 ##################################################################################
-#Stage in
+# Stage in
 ##################################################################################
 
 ./datastager.py in taskid -u cin0641a --ss GSI-PLX --sd /gpfs/scratch/userinternal/cin0641a/DS-Test/ -p file.example --ds cinecaRepoSingl --dd  /CINECA01/home/cin_staff/gmariani/testPID/
@@ -25,3 +25,10 @@
 
 ./datastager.py in pid -u cin0641a --taskid c9d138be-ab56-11e2-97d0-123139404f2e
 
+
+##################################################################################
+# Stage in and out
+##################################################################################
+
+./datastager.py in details -u cin0641a --taskid 38648362-4de1-11e3-9a00-12313d2005b7
+./datastager.py in cancel -u cin0641a --taskid 38648362-4de1-11e3-9a00-12313d2005b7
