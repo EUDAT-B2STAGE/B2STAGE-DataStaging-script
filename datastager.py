@@ -197,6 +197,7 @@ Invoke as follow for stage out:
                           -u GO-user 
                           --ss source-end-point --ds dest-end-point --dd dest-dir
 ./datastager.py out pid --pid prefix/pid 
+                        -m PID-retrieving-mode
                         -u GO-user 
                         --ds dest-end-point --dd dest-dir
 ./datastager.py out url --url full-url
@@ -209,6 +210,7 @@ or as follow for stage in:
                         --ss source-end-point --sd source-dir -p path
                         --ds dest-end-point --dd dest-dir
 ./datastager.py in pid --taskid the-taskID-of-the-processr-you-want-thepid 
+                       -m PID-retrieving-mode
                        -u GO-user 
 
 ----------------------------------------------------------------------------------    
@@ -224,7 +226,7 @@ parser = argparse.ArgumentParser(description=" Data stager: move a bounce of dat
         formatter_class=RawTextHelpFormatter)
 taskgroup = parser.add_argument_group('taskid', 'Options specific to "stage {in,out} {pid(in only),details,cancel} --taskid"')
 urlgroup = parser.add_argument_group('url', 'Options specific to url (mutually exclusive)')
-pidgroup = parser.add_argument_group('pid', 'Options specific to pid (mutually exclusive)')
+pidgroup = parser.add_argument_group('pid', 'Options specific to pid') # (mutually exclusive)')
 # Examples
 parser.add_argument("-d", "--details", help="a longer description and some usage examples (invoke with \"datastager.py in pid -d\")", action="store_true")
 # Stage in or stage out
@@ -251,6 +253,8 @@ pidgroup.add_argument("-P", "--pid", help="the PID of your data",
         action="store", dest="pid")
 pidgroup.add_argument("-PF", "--pid-file", help="the file listing the PID(s) of your data",
         action="store", dest="pidfile")
+pidgroup.add_argument("-m", "--pid-mode", help="the way you \"translate\" the PID(s) of your data (DSSfile or icommans)",
+        action="store", dest="pidmode")
 # URL
 urlgroup.add_argument("-U", "--url", help="the URL of your data",
         action="store", dest="url")
@@ -359,6 +363,9 @@ if arguments.direction == "out":
         if arguments.pid and arguments.pidfile:
             print "Only one between -P and -PF is allowed!"
             sys.exit(1)
+        if not arguments.pidmode:
+            print "The pidmode (-m) is mandatory!"
+            sys.exit(1)
         arguments.src_site=pidsource(arguments)
         print "Source end-point: "+arguments.src_site
         #sys.exit(1) 
@@ -397,6 +404,9 @@ if arguments.direction == "in":
             print "One between -p and -pF is mandatory."
             sys.exit(1)
     elif arguments.kind == "pid":
+        if not arguments.pidmode:
+            print "The pidmode (-m) is mandatory!"
+            sys.exit(1)
         print "The list of the corresponding PID is going to be saved in pid.file."
         if arguments.taskid:
             api = None
@@ -417,21 +427,25 @@ if arguments.direction == "in":
             #print endpoint
             fo = open("pid.file", "w").close
 # Create and start the thread list to call urlfrompid in parallel
-            threadlist=[]
-            for url in outurllist:
-                plainurl = url.replace("//","/")
-                #argument = formatter("url","irods://"+endpoint+":1247"+plainurl)
-                argument = formatter("url","\*"+plainurl)
-                #print argument
-                T=Thread(target=pidtofile,args=([argument]))
-                T.start()
-                threadlist.append(T)
-            for t in threadlist:
-                t.join()
+            if arguments.pidmode == "DSSfile":
+                print "Retrieving the DSSfile via GridFTP"
+                sys.exit(0)
+            elif arguments.pidmode == "icommands":
+                threadlist=[]
+                for url in outurllist:
+                    plainurl = url.replace("//","/")
+                    #argument = formatter("url","irods://"+endpoint+":1247"+plainurl)
+                    argument = formatter("url","\*"+plainurl)
+                    #print argument
+                    T=Thread(target=pidtofile,args=([argument]))
+                    T.start()
+                    threadlist.append(T)
+                for t in threadlist:
+                    t.join()
             print "All (available) pid(s) wrote in pid.file."
             sys.exit(0)
         else:
-            "You did not provide the taskid!"
+            print "You did not provide the taskid!"
             sys.exit(1)
     else:
         print "You are staging in so you can only specify taskID or PID!"
