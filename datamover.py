@@ -218,6 +218,9 @@ def defineurlendpoint(username):
     for ep_data in data["DATA"]:
         value = ep_data["canonical_name"]
         key   = ep_data["DATA"][0]["hostname"]
+        if key is None:
+            key="localhost"
+        #print str(value)+" -> "+str(key)
         urlendpoint[key]=value
     #print "============= endpoint-list retrivied =============="
 

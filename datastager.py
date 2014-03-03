@@ -5,6 +5,7 @@ from argparse import RawTextHelpFormatter
 
 import datetime
 import json
+import csv
 import re
 from threading import Thread
 
@@ -419,6 +420,7 @@ if arguments.direction == "in":
                 sys.exit(1)
             urlendpoint = datamover.defineurlendpoint(str(arguments.user))
             for url, ep in urlendpoint.items():
+                #print url,ep,arguments.user+"#"+destendpoint[0]
                 if ep == arguments.user+"#"+destendpoint[0]:
                     endpoint=url
             if endpoint=="":
@@ -428,7 +430,18 @@ if arguments.direction == "in":
             fo = open("pid.file", "w").close
 # Create and start the thread list to call urlfrompid in parallel
             if arguments.pidmode == "DSSfile":
-                print "Retrieving the DSSfile via GridFTP"
+                print "Retrieving the DSSfile via GridFTP from "+str(endpoint)+" i.e. "+str(destendpoint[0])
+                file_list=[]
+                file_list.append("/CINECA/home/gmariani/.DSSfile")
+                json_results=json.dumps(file_list)
+                fo = open("json_file", "w")
+                fo.write(json_results)
+                fo.close()
+                datamover.mover(str(arguments.user), str(destendpoint[0]), str(GClocalhost), str(os.getcwd()))
+                with open('.DSSfile', mode='r') as infile:
+                    reader = csv.reader(infile,)
+                    DSSlist = {rows[0]:rows[1] for rows in reader if len(rows) == 2}
+                    #print DSSlist
                 sys.exit(0)
             elif arguments.pidmode == "icommands":
                 threadlist=[]
