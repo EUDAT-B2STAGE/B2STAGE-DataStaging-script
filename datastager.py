@@ -26,19 +26,39 @@ def formatter(a,x):
 def all_same(items):
     return all(x == items[0] for x in items)
 
-# Get the url given the PID
-def pidfromurl(argument):
+# Get the url given the PID using DSSfile
+def DSSfileURLfromPID(argument):
+    #print "DSSfileURLfromPID -> argument: "+argument
+    f = open('.DSSfile', 'r')
+    strings = re.findall(r'.+,%s' % argument , f.read())
+    f.close()
+    if not strings:
+        print "The PID "+argument+" is not in .DSSfile"
+        sys.exit(1)
+    #print strings[0]    
+    url = strings[0].split(',')
+    #print url[0]
+    f = open('json_file', 'a')
+    f.write("Output "+url[0]+"\n")
+    f.close()
+
+# Get the url given the PID using icommands
+def iURLfromPID(argument):
+    #print "iURLfromPID -> argument: "+argument
     os.system(iPATH+'/irule -F URLselecter.r '+argument+' >> json_file')
 
-# Get the PID given the url
-def urlfrompid(argument):
+# Get the PID given the url using icommands
+def iPIDfromURL(argument):
+    #print "iPIDfromURL -> argument: "+argument
     os.system(iPATH+'/irule -F PIDselecter.r '+argument+' > json_file')
 
-# Write the PID to pid.file
-def pidtofile(argument):
+# Write the PID to pid.file using icommands
+def iPIDtoPIDFILE(argument):
+    #print "iPIDtoPIDFILE -> argument: "+argument
     os.system(iPATH+'/irule -F PIDselecter.r '+argument+' | awk \'{print $2}\' >> pid.file')
 
-# Write to json_file the json list of file to be transferred. 
+# Read json_file, extract and write to json_file the json list of file to be 
+# transferred and return the source endpoint. 
 def jsonformatter():
 # Read the string from the file 
     fo = open("json_file", "r")
@@ -46,7 +66,9 @@ def jsonformatter():
     fo.close()
 # Empty the file    
     open("json_file", 'w').close()
-# Fromat the string    
+# Format the string    
+# Each element should of the form:
+# 
     path=[]
     endpoint=[]
     strglistlength=len(strglist)
@@ -82,6 +104,7 @@ def jsonformatter():
     #print json_results
     return endpoint
 
+# Write to json_file (via jsonformatter) the list of url for the given dest endpoint. 
 def irodssource(arguments):
     argument=''
     if arguments.path:
@@ -120,7 +143,7 @@ def irodssource(arguments):
 def pidsource(arguments):
     if arguments.pid:
         argument=formatter("pid",arguments.pid.rstrip())
-        pidfromurl(argument)
+        iURLfromPID(argument)
         sslist=jsonformatter()
         return sslist[0]
     elif arguments.pidfile:
@@ -129,12 +152,12 @@ def pidsource(arguments):
         fo.close()
 # Empty the file    
         open("json_file", 'w').close()
-# Create and start the thread list to call pidfromurl in parallel
+# Create and start the thread list to call iURLfromPID in parallel
         threadlist=[]
         for pid in pidlist:
             argument=formatter("pid",pid.rstrip())
             #print argument
-            T=Thread(target=pidfromurl,args=([argument]))
+            T=Thread(target=iURLfromPID,args=([argument]))
             T.start()
             threadlist.append(T)
         for t in threadlist:
@@ -152,11 +175,53 @@ def pidsource(arguments):
         print "You selected pid so the pid is required!"
         sys.exit(1)
 
+# Write to json_file (via jsonformatter) the list of url for the given dest
+# endpoint looking in DSSfile. 
+def DSSfile_pidsource(arguments):
+# Empty the file    
+    open("json_file", 'w').close()
+    if arguments.pid:
+        argument=arguments.pid.rstrip()
+        DSSfileURLfromPID(argument)
+        print "The URL is in json_file"  
+        sslist=jsonformatter()
+        return sslist[0]
+    elif arguments.pidfile:
+        fo = open(arguments.pidfile, "r")
+        pidlist = fo.readlines();
+        fo.close()
+# Empty the file    
+        open("json_file", 'w').close()
+# Create and start the thread list to call iURLfromPID in parallel
+        threadlist=[]
+        for pid in pidlist:
+            argument=pid.rstrip()
+            T=Thread(target=DSSfileURLfromPID,args=([argument]))
+            T.start()
+            threadlist.append(T)
+        for t in threadlist:
+            t.join()
+        print "All pid(s) resolved to an url."
+        sslist = jsonformatter()
+        if not all_same(sslist):
+            print "All the pids should be mapped to the same GO endpoint!"
+            sys.exit(1)
+        if sslist == []:
+            print "None of the url correspond to an exixting file!"
+            sys.exit()
+        return sslist[0]
+    else:
+        print "You selected pid so the pid is required!"
+        sys.exit(1)
+
+
+# Write to json_file (via jsonformatter) the list of url for the given dest
+# endpoint using pidsource. 
 def urlsource(arguments):
     if arguments.url:
         argument=formatter("url",arguments.url)
         #print "URL: "+argument
-        urlfrompid(argument)
+        iPIDfromURL(argument)
         fo = open("json_file", "r")
         strg = fo.readlines();
         fo.close()
@@ -172,12 +237,12 @@ def urlsource(arguments):
         fo.close()
 # Empty the file    
         open("json_file", 'w').close()
-# Create and start the thread list to call urlfrompid in parallel
+# Create and start the thread list to call iPIDfromURL in parallel
         threadlist=[]
         for url in urllist:
             argument=formatter("url",url.rstrip())
             #print argument
-            T=Thread(target=urlfrompid,args=([argument]))
+            T=Thread(target=iPIDfromURL,args=([argument]))
             T.start()
             threadlist.append(T)
         for t in threadlist:
@@ -197,7 +262,7 @@ Invoke as follow for stage out:
 ./datastager.py out irods -p path  
                           -u GO-user 
                           --ss source-end-point --ds dest-end-point --dd dest-dir
-./datastager.py out pid --pid prefix/pid 
+./datastager.py out pid -P prefix/pid 
                         -m PID-retrieving-mode
                         -u GO-user 
                         --ds dest-end-point --dd dest-dir
@@ -254,7 +319,7 @@ pidgroup.add_argument("-P", "--pid", help="the PID of your data",
         action="store", dest="pid")
 pidgroup.add_argument("-PF", "--pid-file", help="the file listing the PID(s) of your data",
         action="store", dest="pidfile")
-pidgroup.add_argument("-m", "--pid-mode", help="the way you \"translate\" the PID(s) of your data (DSSfile or icommans)",
+pidgroup.add_argument("-m", "--pid-mode", help="the way you \"translate\" the PID(s) of your data (DSSfile or icommands)",
         action="store", dest="pidmode")
 # URL
 urlgroup.add_argument("-U", "--url", help="the URL of your data",
@@ -367,7 +432,11 @@ if arguments.direction == "out":
         if not arguments.pidmode:
             print "The pidmode (-m) is mandatory!"
             sys.exit(1)
-        arguments.src_site=pidsource(arguments)
+        if arguments.pidmode == "DSSfile":
+            print "Using .DSSfile"
+            arguments.src_site=DSSfile_pidsource(arguments)
+        elif arguments.pidmode == "icommands":
+            arguments.src_site=pidsource(arguments)
         print "Source end-point: "+arguments.src_site
         #sys.exit(1) 
     else:
@@ -408,7 +477,6 @@ if arguments.direction == "in":
         if not arguments.pidmode:
             print "The pidmode (-m) is mandatory!"
             sys.exit(1)
-        print "The list of the corresponding PID is going to be saved in pid.file."
         if arguments.taskid:
             api = None
             inurllist, outurllist, destendpoint = datamover.lookforurl(str(arguments.user), str(arguments.taskid))
@@ -428,11 +496,12 @@ if arguments.direction == "in":
                 sys.exit(0)
             #print endpoint
             fo = open("pid.file", "w").close
-# Create and start the thread list to call urlfrompid in parallel
+# Create and start the thread list to call iPIDfromURL in parallel
             if arguments.pidmode == "DSSfile":
+                print "The list of the corresponding PID is going to be saved in DSSfile."
                 print "Retrieving the DSSfile via GridFTP from "+str(endpoint)+" i.e. "+str(destendpoint[0])
                 file_list=[]
-                file_list.append("/CINECA/home/gmariani/.DSSfile")
+                file_list.append(DSSfilePath)
                 json_results=json.dumps(file_list)
                 fo = open("json_file", "w")
                 fo.write(json_results)
@@ -444,18 +513,19 @@ if arguments.direction == "in":
                     #print DSSlist
                 sys.exit(0)
             elif arguments.pidmode == "icommands":
+                print "The list of the corresponding PID is going to be saved in pid.file."
                 threadlist=[]
                 for url in outurllist:
                     plainurl = url.replace("//","/")
                     #argument = formatter("url","irods://"+endpoint+":1247"+plainurl)
                     argument = formatter("url","\*"+plainurl)
                     #print argument
-                    T=Thread(target=pidtofile,args=([argument]))
+                    T=Thread(target=iPIDtoPIDFILE,args=([argument]))
                     T.start()
                     threadlist.append(T)
                 for t in threadlist:
                     t.join()
-            print "All (available) pid(s) wrote in pid.file."
+                print "All (available) pid(s) wrote in pid.file."
             sys.exit(0)
         else:
             print "You did not provide the taskid!"

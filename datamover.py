@@ -61,7 +61,7 @@ def mover(username, src_site, dst_site, dst_dir):
     site_ep1 = src_site
     site_ep2 = dst_site
 
-    print "Please enter your myproxy username (\'none\' if you don\' have one)."
+    print "Please enter your myproxy username (\'none\' if you prefer to use your local credentials)."
     myproxy_username = sys.stdin.readline().rstrip()
 
     preferred_activation(username, site_ep1, myproxy_username)
