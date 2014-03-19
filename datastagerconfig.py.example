@@ -1,3 +1,3 @@
-iPATH='/home/jack/CINECA/GridTools/iRODS/iRODS/clients/icommands/bin/'
-GClocalhost='nb-mariani'
-DSSfilePath='/CINECA/home/gmariani/.DSSfile'
+iPATH='/path/to/icommands/bin/'
+GClocalhost='<the endpoint name of your workstation, i.e. the globus connect endpoint>'
+DSSfilePath='<the remote path of the DSSfile in the form /Zone/path/to/filename>'
