@@ -6,7 +6,7 @@ from argparse import RawTextHelpFormatter
 import datetime
 import json
 import csv
-import re
+import string,re
 from threading import Thread
 
 import datamover
@@ -47,10 +47,30 @@ def iURLfromPID(argument):
     #print "iURLfromPID -> argument: "+argument
     os.system(iPATH+'/irule -F URLselecter.r '+argument+' >> json_file')
 
-# Get the PID given the url using icommands
+# Get the PID given the URL using DSSfile
+def DSSfilePIDfromURL(argument):
+    print "DSSfilePIDfromURL -> argument: "+argument
+    f = open('.DSSfile', 'r')
+    real_url=argument.split('=')
+    print "DSSfilePIDfromURL -> argument: "+real_url[1]
+    strings = re.findall(r'(.+)%s(.+)' % real_url[1] , f.read())
+    argument=string.strip(real_url[1],"i") 
+    strings = re.findall(r'(.+)%s(.+)' % argument , f.read())
+    f.close()
+    if not strings:
+        print "The URL "+argument+" is not in .DSSfile"
+        sys.exit(1)
+    #print strings[0]    
+    pid = strings[0].split(',')
+    #print url[0]
+    f = open('json_file', 'a')
+    f.write("Output "+pid[1]+"\n")
+    f.close()
+
+# Get the PID given the URL using icommands
 def iPIDfromURL(argument):
     #print "iPIDfromURL -> argument: "+argument
-    os.system(iPATH+'/irule -F PIDselecter.r '+argument+' > json_file')
+    os.system(iPATH+'/irule -F PIDselecter.r '+argument+' >> json_file')
 
 # Write the PID to pid.file using icommands
 def iPIDtoPIDFILE(argument):
@@ -147,9 +167,14 @@ def pidsource(arguments):
         sslist=jsonformatter()
         return sslist[0]
     elif arguments.pidfile:
-        fo = open(arguments.pidfile, "r")
-        pidlist = fo.readlines();
-        fo.close()
+        try: 
+            fo = open(arguments.pidfile, "r")
+            pidlist = fo.readlines();
+            fo.close()
+        except:
+            fo = open(arguments.pidfile, "rw")
+            pidlist = fo.readlines();
+            fo.close()
 # Empty the file    
         open("json_file", 'w').close()
 # Create and start the thread list to call iURLfromPID in parallel
@@ -220,7 +245,7 @@ def DSSfile_pidsource(arguments):
 def urlsource(arguments):
     if arguments.url:
         argument=formatter("url",arguments.url)
-        #print "URL: "+argument
+        print "URL: "+argument
         iPIDfromURL(argument)
         fo = open("json_file", "r")
         strg = fo.readlines();
@@ -248,7 +273,47 @@ def urlsource(arguments):
         for t in threadlist:
             t.join()
         print "All url(s) resolved to a pid."
-        arguments.pidfile="pidfile"
+        arguments.pidfile="pid.file"
+        src_site=pidsource(arguments)
+        return src_site
+    else:
+        print "You selected url so the url is required!"
+        sys.exit(1)
+
+# Write to json_file (via jsonformatter) the list of url for the given dest
+# endpoint looking in DSSfile.
+def DSSfile_urlsource(arguments):
+    if arguments.url:
+        argument=formatter("url",arguments.url)
+        #print "URL: "+argument
+        DSSfilePIDfromURL(argument)
+        fo = open("json_file", "r")
+        strg = fo.readlines();
+        fo.close()
+        open("json_file", 'w').close()
+        #print "iii "+strg
+        arguments.pid=re.split("Output: ", strg[0])[1].rstrip()
+        #print "pid "+arguments.pid
+        src_site=pidsource(arguments)
+        return src_site
+    elif arguments.urlfile:
+        fo = open(arguments.urlfile, "r")
+        urllist = fo.readlines();
+        fo.close()
+# Empty the file    
+        open("json_file", 'w').close()
+# Create and start the thread list to call iPIDfromURL in parallel
+        threadlist=[]
+        for url in urllist:
+            argument=formatter("url",url.rstrip())
+            #print argument
+            T=Thread(target=DSSfilePIDfromURL,args=([argument]))
+            T.start()
+            threadlist.append(T)
+        for t in threadlist:
+            t.join()
+        print "All url(s) resolved to a pid."
+        arguments.pidfile="pid.file"
         src_site=pidsource(arguments)
         return src_site
     else:
@@ -422,7 +487,11 @@ if arguments.direction == "out":
         if arguments.url and arguments.urlfile:
             print "Only one between -U and -UF is allowed!"
             sys.exit(1)
-        arguments.src_site=urlsource(arguments)
+        if arguments.pidmode == "DSSfile":
+            print "Using .DSSfile"
+            arguments.src_site=DSSfile_urlsource(arguments)
+        elif arguments.pidmode == "icommands":
+            arguments.src_site=urlsource(arguments)
         print "Source end-point: "+arguments.src_site
         #sys.exit(1) 
     elif arguments.kind == "pid":
