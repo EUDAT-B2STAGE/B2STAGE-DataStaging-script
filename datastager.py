@@ -2,6 +2,7 @@
 import sys, os, subprocess
 import argparse
 from argparse import RawTextHelpFormatter
+import ConfigParser
 
 import datetime
 import json
@@ -221,55 +222,119 @@ or as follow for cancel the stage (in or out) operation or get details about it:
     sys.exit(0)
 
 # Main program
-def main():
-    parser = argparse.ArgumentParser(description=" Data stager: move a bounce of data inside or outside iRODS via GridFTP. \n The -d options requires both positional arguments.", formatter_class=RawTextHelpFormatter)
-    taskgroup = parser.add_argument_group('taskid', 'Options specific to "stage {in,out} {pid(in only),details,cancel} --taskid"')
-    urlgroup = parser.add_argument_group('url', 'Options specific to url (mutually exclusive)')
-    pidgroup = parser.add_argument_group('pid', 'Options specific to pid (mutually exclusive)')
-# Examples
-    parser.add_argument("-d", "--details", help="a longer description and some usage examples (invoke with \"datastager.py in pid -d\")", action="store_true")
-# Stage in or stage out
-    parser.add_argument("direction",choices=['in','out'],default="NULL",help=" the direction of the stage: in or out")
-# Kind of source: url or PID
-    parser.add_argument("kind",choices=['irods','pid','url','path','details','cancel'],default="NULL",help=" the description of your data")
-# General informations
-    parser.add_argument("-p", "--path", help="the path of your file (iRODS collection or local file system depending on the circumstances)", 
-        action="store", dest="path")
-    parser.add_argument("-pF", "--pathFile", help="the file listing your files (alternative to -p)",
-        action="store", dest="pathfile")
-    parser.add_argument("-u", "--username", help="your username on globusonline.org", action="store",
-        dest="user")
-    parser.add_argument("-cert", "--certificate", help="your x509 certificate (pem file)", action="store",
-        dest="cert")
-    parser.add_argument("-key", "--secretekey", help="the key of your certificate", action="store",
-        dest="key")
-    parser.add_argument("-certdir", "--trustedca", help="your trusted CA", action="store",
-        dest="certdir")
-# iRODS informations
-
-# PID
-    pidgroup.add_argument("-P", "--pid", help="the PID of your data",
-        action="store", dest="pid")
-    pidgroup.add_argument("-PF", "--pid-file", help="the file listing the PID(s) of your data",
-        action="store", dest="pidfile")
-# URL
-    urlgroup.add_argument("-U", "--url", help="the URL of your data",
-        action="store", dest="url")
-    urlgroup.add_argument("-UF", "--urlfile", help="the file listing the URL(s) of your data",
-        action="store", dest="urlfile")
-# TaskID
-    taskgroup.add_argument("-t", "--taskid", help="the taskID of your transfer",
-        action="store", dest="taskid")
-# Servers infromations
-    parser.add_argument("--ss", help="the GridFTP src server as GO endpoint", action="store",
-        dest="src_site", default="irods-dev")
-    parser.add_argument("--ds", help="the GridFTP dst server as GO endpoint", action="store",
-        dest="dst_site", default="GSI-PLX")
-    parser.add_argument("--sd", help="the GridFTP src directory", action="store",
-        dest="src_dir", default="/~/")
-    parser.add_argument("--dd", help="the GridFTP dst directory", action="store",
-        dest="dst_dir", default="/~/")
-    arguments = parser.parse_args()
+def main(arguments=None):
+    if arguments is None:
+        arguments = sys.argv
+# Top-level parser
+    parser = argparse.ArgumentParser(description=" Data stager: move a bounce of data inside or outside iRODS via GridFTP. \n The -d options requires both positional arguments.", formatter_class=RawTextHelpFormatter,add_help=True)
+    parser.add_argument("-d", "--details", help="a longer description and some usage examples (invoke with \"datastager.py in pid -d\")", action="store_true") # Examples
+#config file
+    # Turn off help, so we print all options in response to -h
+    parser_cfg_file = argparse.ArgumentParser( add_help=False)
+    parser_cfg_file.add_argument("-c", "--cfg_file",
+                    help="Specify config file", metavar="FILE", default="datastager.cfg")
+    arguments, from_file_args = parser_cfg_file.parse_known_args()    
+    if arguments.cfg_file:
+        print "Reading config file..."
+        config = ConfigParser.SafeConfigParser()
+        config.read([arguments.cfg_file])
+        defaults = dict(config.items("Defaults"))
+        #print defaults
+    else:
+        defaults = { "option":"default" }
+#
+# Top-level credentials    
+#
+    parser.set_defaults(**defaults)
+    parser.add_argument("-u", "--username", 
+            help="your username on globusonline.org", action="store", dest="user")
+    parser.add_argument("-cert", "--certificate", 
+            help="your x509 certificate (pem file)", action="store", dest="cert")
+    parser.add_argument("-key", "--secretekey", 
+            help="the key of your certificate", action="store", dest="key")
+    parser.add_argument("-certdir", "--trustedca", 
+            help="your trusted CA", action="store", dest="certdir")
+    subparsers = parser.add_subparsers(help='Directional sub-command help')
+#
+# Parser for the "in" direction
+#
+    subparser_in = subparsers.add_parser('in', help='Stage _in_ is used when moving data into EUDAT.')
+    subparsers_in = subparser_in.add_subparsers(help='Stage _in_ sub-command help')
+    subparser_in_issue   = subparsers_in.add_parser('issue',   help='To issue a transfer.')
+    subparser_in_pid     = subparsers_in.add_parser('pid',     help='To retrieve the PIDs associated to the files you transfereed.')
+    subparser_in_details = subparsers_in.add_parser('details', help='To know the status of a transfer.')
+    subparser_in_cancel  = subparsers_in.add_parser('cancel',  help='To cancel a transfer.')
+#issue       
+    subparser_in_issue.add_argument("-p", "--path", 
+            help="the path of your file (iRODS collection or local file system depending on the circumstances)", action="store", dest="path")
+    subparser_in_issue.add_argument("--ss", 
+            help="the GridFTP src server as GO endpoint", action="store", dest="src_site", default="irods-dev")
+    subparser_in_issue.add_argument("--sd", 
+            help="the GridFTP src directory", action="store", dest="src_dir", default="/~/")
+    subparser_in_issue.add_argument("--ds", 
+            help="the GridFTP dst server as GO endpoint", action="store", dest="dst_site", default="GSI-PLX")
+    subparser_in_issue.add_argument("--dd", 
+            help="the GridFTP dst directory", action="store", dest="dst_dir", default="/~/")
+#pid     
+    subparser_in_pid.add_argument("-t", "--taskid", 
+            help="the taskID of your transfer", action="store", dest="taskid")
+#details 
+    subparser_in_details.add_argument("-t", "--taskid", 
+            help="the taskID of your transfer", action="store", dest="taskid")
+#cancel  
+    subparser_in_cancel.add_argument("-t", "--taskid", 
+            help="the taskID of your transfer", action="store", dest="taskid")
+#
+# Parser for the "out" direction
+#
+    subparser_out = subparsers.add_parser('out', help='Stage _out_ is used when moving data outside EUDAT.')
+    subparsers_out = subparser_out.add_subparsers(help='Stage _out_ sub-command help')
+    subparser_out_issue   = subparsers_out.add_parser('issue',   help='To issue a transfer.')
+    subparser_out_details = subparsers_out.add_parser('details', help='To know the status of a transfer.')
+    subparser_out_cancel  = subparsers_out.add_parser('cancel',  help='To cancel a transfer.')
+#issue       
+    subparsers_out_issues = subparser_out_issue.add_subparsers(help='Stage _out issue_ sub-command help')
+    subparser_out_issue_pid   = subparsers_out_issues.add_parser('pid', help='Select data by PIDs')
+    subparser_out_issue_url   = subparsers_out_issues.add_parser('url', help='Select data by URLs')
+    subparser_out_issue_irods = subparsers_out_issues.add_parser('irods', help='Select data by iRODS URLs')
+#issue -> pid      
+    subparser_out_issue_pid.add_argument("-P", "--pid", 
+            help="the PID of your data", action="store", dest="pid")
+    subparser_out_issue_pid.add_argument("-PF", "--pid-file", 
+            help="the file listing the PID(s) of your data", action="store", dest="pidfile")
+    subparser_out_issue_pid.add_argument("-RM", "--resolve-mode", 
+            help="the way you resolve for source file: iRODS or DSSfile", action="store", dest="rmode")
+#issue -> url      
+    subparser_out_issue_url.add_argument("-U", "--url", 
+            help="the URL of your data", action="store", dest="url")
+    subparser_out_issue_url.add_argument("-UF", "--urlfile", 
+            help="the file listing the URL(s) of your data", action="store", dest="urlfile")
+    subparser_out_issue_url.add_argument("-RM", "--resolve-mode", 
+            help="the way you resolve for source file: iRODS or DSSfile", action="store", dest="rmode")
+#issue -> irods
+    subparser_out_issue_irods.add_argument("-p", "--path", 
+            help="the path of your file (iRODS collection)", action="store", dest="path")
+    subparser_out_issue_irods.add_argument("-RM", "--resolve-mode", 
+            help="the way you resolve for source file: iRODS or DSSfile", action="store", dest="rmode")
+    subparser_out_issue_irods.add_argument("--ss", 
+            help="the GridFTP src server as GO endpoint", action="store", dest="src_site")
+    subparser_out_issue_irods.add_argument("--sd", 
+            help="the GridFTP src directory", action="store", dest="src_dir", default="/~/")
+#issue -> destination
+    subparser_out_issue.add_argument("--ds", 
+            help="the GridFTP dst server as GO endpoint", action="store", dest="dst_site", required="true")
+    subparser_out_issue.add_argument("--dd", 
+            help="the GridFTP dst directory", action="store", dest="dst_dir", default="/~/", required="true")
+#details 
+    subparser_out_details.add_argument("-t", "--taskid", 
+            help="the taskID of your transfer", action="store", dest="taskid")
+#cancel  
+    subparser_out_cancel.add_argument("-t", "--taskid", 
+            help="the taskID of your transfer", action="store", dest="taskid")
+#
+# get everything     
+#
+    arguments = parser.parse_args(from_file_args)
 
 # Invoke the detailed help if required
     if arguments.details:
