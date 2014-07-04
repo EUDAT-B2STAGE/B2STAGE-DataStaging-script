@@ -11,12 +11,6 @@ from threading import Thread
 
 import datamover
 
-# To configure the following, please edit datastagerconfig.py
-#iPATH='/home/jack/CINECA/GridTools/iRODS/iRODS/clients/icommands/bin/'
-
-# Load configurations from datastagerconfig.py
-execfile(os.getcwd()+"/datastagerconfig.py")
-
 # Write y as an argument for iRODS in wich a is the variable and b the value
 def formatter(a,x):
     y='"*'+a+'=\\"'+x+'\\"" '
@@ -69,7 +63,7 @@ def jsonformatter():
         try:
             endpoint.append(urlendpoint[url])
         except:
-            print "The server "+url+" is not mapped to a GO enpoint in datastagerconfig" 
+            print "The server "+url+" is not mapped to any GO enpoint" 
             sys.exit(0)
         #print url
         #print path
@@ -190,23 +184,23 @@ def urlsource(arguments):
         print "You selected url so the url is required!"
         sys.exit(1)
 
-def details():
+def example():
     print """
 Invoke as follow for stage out: 
 ----------------------------------------------------------------------------------    
-./datastager.py out irods -p path  
+./datastager.py out issue irods -p path  
                           -u GO-user 
                           --ss source-end-point --ds dest-end-point --dd dest-dir
-./datastager.py out pid --pid prefix/pid 
+./datastager.py out issue pid --pid prefix/pid 
                         -u GO-user 
                         --ds dest-end-point --dd dest-dir
-./datastager.py out url --url full-url
+./datastager.py out issue url --url full-url
                         -u GO-user 
                         --ds dest-end-point --dd dest-dir
 
 ----------------------------------------------------------------------------------    
 or as follow for stage in:
-./datastager.py in path -u GO-user 
+./datastager.py in issue -u GO-user 
                         --ss source-end-point --sd source-dir -p path
                         --ds dest-end-point --dd dest-dir
 ./datastager.py in pid --taskid the-taskID-of-the-processr-you-want-thepid 
@@ -227,7 +221,7 @@ def main(arguments=None):
         arguments = sys.argv
 # Top-level parser
     parser = argparse.ArgumentParser(description=" Data stager: move a bounce of data inside or outside iRODS via GridFTP. \n The -d options requires both positional arguments.", formatter_class=RawTextHelpFormatter,add_help=True)
-    parser.add_argument("-d", "--details", help="a longer description and some usage examples (invoke with \"datastager.py in pid -d\")", action="store_true") # Examples
+    parser.add_argument("-e", "--example", help="a longer description and some usage examples (invoke with \"datastager.py in pid -d\")", action="store_true") # Examples
 #config file
     # Turn off help, so we print all options in response to -h
     parser_cfg_file = argparse.ArgumentParser( add_help=False)
@@ -337,8 +331,8 @@ def main(arguments=None):
     arguments = parser.parse_args(from_file_args)
 
 # Invoke the detailed help if required
-    if arguments.details:
-        details()
+    if arguments.example:
+        example()
 
 ##################################################################################
 # Start the execution
@@ -386,7 +380,8 @@ def main(arguments=None):
     print ""
     
     # Cencel or Details
-    if arguments.kind == "cancel":
+    try: 
+      if arguments.cancel:
         print "The transfer activity corresponding to the given task is going to be cancelled."
         if arguments.taskid:
             api = None
@@ -395,7 +390,10 @@ def main(arguments=None):
         else:
             "You did not provide the taskid!"
             sys.exit(1)
-    elif arguments.kind == "details":
+    except:
+        None
+    try:
+      if arguments.details:
         print "The transfer activity corresponding to the given task follows."
         if arguments.taskid:
             api = None
@@ -403,10 +401,13 @@ def main(arguments=None):
             #print urlendpoint
             datamover.detailsoftask(str(arguments.user), str(arguments.taskid))
             sys.exit(0)
+    except:
+        None
     
     
 # Stage out
-    if arguments.direction == "out":
+    if arguments.out:
+        print "----------------HERE---------------"
         if arguments.kind == "irods":
             if arguments.path and arguments.pathfile:
                 print "Only one between -p and -pF is allowed!"
