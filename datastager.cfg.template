@@ -1,0 +1,11 @@
+[Defaults]
+user =  username
+cert =  ~/.globus/usercert.pem
+key  =  ~/.globus/userkey.pem
+rmode=  DSSfile
+iPATH=  /path/to/icommands/bin/
+
+src_site = GO-endpoint-A
+src_dir  = ~/
+dst_site = GO-endpoint-B
+dst_dir  = ~/
