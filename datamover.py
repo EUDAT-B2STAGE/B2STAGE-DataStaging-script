@@ -51,6 +51,10 @@ def mover(username, src_site, dst_site, dst_dir):
     api.set_debug_print(False, False)
     #print " Here (mover): ",api.task_list()
     # See what is in the account before we make any submissions.
+    time.sleep(0.01)
+    print ""
+    print ""
+    print ""
     print "=== Before transfer ==="
     #display_tasksummary(); print
     #display_task_list(); print
@@ -61,7 +65,7 @@ def mover(username, src_site, dst_site, dst_dir):
     site_ep1 = src_site
     site_ep2 = dst_site
 
-    print "Please enter your myproxy username (\'none\' if you don\' have one)."
+    print "Please enter your myproxy username (\'none\' if you do not have one)."
     myproxy_username = sys.stdin.readline().rstrip()
 
     preferred_activation(username, site_ep1, myproxy_username)
@@ -253,15 +257,22 @@ def lookforurl(username, task_id):
     #status, reason, result = api.subtask_list(task_id)
     destendpoint = []
     status, reason, result = api.get("/task/%s" % task_id)
-    destendpoint.append(re.split("#",result["destination_endpoint"])[1])
+    #print " ++++++++++++++++++++++++ "
+    #print result["source_endpoint"], result["destination_endpoint"]
+    #print " ++++++++++++++++++++++++ "
+    try:
+        destendpoint.append(re.split("#",result["destination_endpoint"])[1])
+    except:
+        destendpoint.append(result["destination_path"])
 
     inurllist    = []
     outurllist   = []
     
     status, reason, result = api.task_successful_transfers(task_id)
     for subtask in result["DATA"]:
-        #print subtask
+        #print " ++++++++++++++++++++++++ "
         #print subtask["source_path"], subtask["destination_path"], subtask["destination_endpoint"]
+        #print " ++++++++++++++++++++++++ "
         inurllist.append(subtask["source_path"])
         outurllist.append(subtask["destination_path"])
     

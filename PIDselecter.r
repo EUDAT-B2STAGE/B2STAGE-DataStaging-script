@@ -1,5 +1,5 @@
 igetPIDrule {
-    getPID(*url, *response);
+    EUDATSearchPID(*url, *response);
     writeLine("stdout","Output: *response");
 }
 
