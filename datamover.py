@@ -251,8 +251,8 @@ def lookforurl(username, task_id):
         print "The process is not finished yet."
         print "Its status is "+result["status"]; print
         sys.exit(0)
-    else:
-        print "The task succeeded"
+    #else:
+        #print "The task succeeded"
 
     #status, reason, result = api.subtask_list(task_id)
     destendpoint = []

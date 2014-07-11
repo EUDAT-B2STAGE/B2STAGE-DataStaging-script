@@ -99,13 +99,12 @@ def argument_parser(arguments):
         #urlendpoint = datamover.defineurlendpoint(str(arguments.user))
         #print urlendpoint
         datamover.detailsoftask(str(arguments.user), str(arguments.taskid))
-        sys.exit(0)
+        full_exit("")
 # Stage out
     if arguments.direction=="out":
         if arguments.sub_action == "irods":
             if arguments.path and arguments.pathfile:
-                print "Only one between -p and -pF is allowed!"
-                sys.exit(1)
+                full_exit("Only one between -p and -pF is allowed!")
             irodssource(arguments)
             if arguments.verbose: print "Source end-point: "+arguments.src_site
         elif arguments.sub_action == "url":
@@ -207,19 +206,22 @@ def argument_parser(arguments):
                         #print DSSlist
                     sys.exit(0)
                 elif arguments.rmode == "icommands":
-                    print "The list of the corresponding PID is going to be saved in pid.file."
+                    if arguments.verbose: 
+                        print "The list of the corresponding PID is going to be saved in pid.file."
                     threadlist=[]
                     for url in outurllist:
                         plainurl = url.replace("//","/")
                         #argument = formatter("url","irods://"+endpoint+":1247"+plainurl)
                         argument = formatter("url","\*"+plainurl)
                         #print plainurl
-                        print argument
+                        #print argument
                         T=Thread(target=iPIDtoPIDFILE,args=(arguments,argument))
                         T.start()
                         threadlist.append(T)
                     for t in threadlist:
                         t.join()
+                    global stop
+                    stop = True
                     print "All (available) pid(s) wrote in pid.file."
                     sys.exit(0)
             else:
@@ -230,10 +232,28 @@ def argument_parser(arguments):
 # Used function to process the arguments
 #*********************************************************************************
 
-# Write y as an argument for iRODS in wich a is the variable and b the value
+# Exit from the weel :-)
+def full_exit(message):
+    global stop
+    stop = True
+    time.sleep(0.2)
+    print ""
+    print message
+    sys.exit(1)
+
+# Return y as an argument for iRODS in wich a is the variable and b the value
+# such as: "*url=\"irods://server:port/Zone/path/file\""
 def formatter(a,x):
     y='"*'+a+'=\\"'+x+'\\"" '
     return y
+
+# Given a full ULR this function returns a string containing only the path.
+# Example:    irods://server:port/Zone/path/file   ->   /Zone/path/file
+def server_stripper(full_url):
+    sub_url = re.split(r'\s*\:\s*', full_url.strip())
+    real_URL=re.split("^\d\d\d\d",sub_url[2])[1].rstrip()
+    path=real_URL.rstrip('"')
+    return path
 
 # Chech if the arguments of an array differ
 def all_same(items):
@@ -316,7 +336,7 @@ def jsonformatter(arguments):
             print "An argument(pid, url...) does not exist. Continuing anyway!" 
             continue
         sublista = re.split(r'\s*\:\s*', lista[1])
-        if arguments.verbose: print "lista : ", lista
+        if arguments.verbose: print "lista: ", lista
         #print "sublista : ", sublista
         url=re.split("//",sublista[1])[1]
         real_path=re.split("^\d\d\d\d",sublista[2])[1].rstrip()
@@ -390,7 +410,7 @@ def pidsource(arguments):
             pidlist = fo.readlines();
             fo.close()
         except:
-            fo = open(arguments.pidfile, "rw")
+            fo = open(arguments.pidfile, "w+")
             pidlist = fo.readlines();
             fo.close()
 # Empty the file    
@@ -398,6 +418,7 @@ def pidsource(arguments):
 # Create and start the thread list to call iURLfromPID in parallel
         threadlist=[]
         for pid in pidlist:
+            if "Output" in pid: pid=pid.split(' ')[1]
             argument=formatter("pid",pid.rstrip())
             #print argument
             T=Thread(target=iURLfromPID,args=(arguments,argument))
@@ -405,18 +426,15 @@ def pidsource(arguments):
             threadlist.append(T)
         for t in threadlist:
             t.join()
-        print "All pid(s) resolved to an url."
+        if arguments.verbose: print "All pid(s) resolved to an url."
         sslist = jsonformatter(arguments)
         if not all_same(sslist):
-            print "All the pids should be mapped to the same GO endpoint!"
-            sys.exit(1)
+            full_exit("All the pids should be mapped to the same GO endpoint!")
         if sslist == []:
-            print "None of the url correspond to an exixting file!"
-            sys.exit()
+            full_exit("None of the url correspond to an existing file!")
         return sslist[0]
     else:
-        print "You selected pid so the pid is required!"
-        sys.exit(1)
+        full_exit("You selected pid so the pid is required!")
 
 # Write to json_file (via jsonformatter) the list of url for the given dest
 # endpoint looking in DSSfile. 
@@ -447,16 +465,12 @@ def DSSfile_pidsource(arguments):
         print "All pid(s) resolved to an url."
         sslist = jsonformatter(arguments)
         if not all_same(sslist):
-            print "All the pids should be mapped to the same GO endpoint!"
-            sys.exit(1)
+            full_exit("All the pids should be mapped to the same GO endpoint!")
         if sslist == []:
-            print "None of the url correspond to an exixting file!"
-            sys.exit()
+            full_exit("None of the url correspond to an exixting file!")
         return sslist[0]
     else:
-        print "You selected pid so the pid is required!"
-        sys.exit(1)
-
+        full_exit("You selected pid so the pid is required!")
 
 # Write to json_file (via jsonformatter) the list of url for the given dest
 # endpoint using pidsource. 
@@ -484,20 +498,20 @@ def urlsource(arguments):
 # Create and start the thread list to call iPIDfromURL in parallel
         threadlist=[]
         for url in urllist:
-            argument=formatter("url",url.rstrip())
-            #print argument
+            path=server_stripper(url)
+            argument=formatter("url",path)
             T=Thread(target=iPIDfromURL,args=(arguments,argument))
             T.start()
             threadlist.append(T)
         for t in threadlist:
             t.join()
-        print "All url(s) resolved to a pid."
-        arguments.pidfile="pid.file"
+        if arguments.verbose: print "All url(s) resolved to a pid."
+        arguments.pidfile="json_file"
+        arguments.pid=None
         src_site=pidsource(arguments)
         return src_site
     else:
-        print "You selected url so the url is required!"
-        sys.exit(1)
+        full_exit("You selected url so the url is required!")
 
 # Write to json_file (via jsonformatter) the list of url for the given dest
 # endpoint looking in DSSfile.
@@ -536,39 +550,12 @@ def DSSfile_urlsource(arguments):
         src_site=pidsource(arguments)
         return src_site
     else:
-        print "You selected url so the url is required!"
-        sys.exit(1)
+        full_exit("You selected url so the url is required!")
 
 ##################################################################################
 def example():
-    print """
-Invoke as follow for stage out: 
-----------------------------------------------------------------------------------    
-./datastager.py out issue irods -p path  
-                          -u GO-user 
-                          --ss source-end-point --ds dest-end-point --dd dest-dir
-./datastager.py out issue pid --pid prefix/pid 
-                        -u GO-user 
-                        --ds dest-end-point --dd dest-dir
-./datastager.py out issue url --url full-url
-                        -u GO-user 
-                        --ds dest-end-point --dd dest-dir
-
-----------------------------------------------------------------------------------    
-or as follow for stage in:
-./datastager.py in issue -u GO-user 
-                        --ss source-end-point --sd source-dir -p path
-                        --ds dest-end-point --dd dest-dir
-./datastager.py in pid --taskid the-taskID-of-the-processr-you-want-thepid 
-                       -u GO-user 
-
-----------------------------------------------------------------------------------    
-or as follow for cancel the stage (in or out) operation or get details about it:
-./datastager.py in details --taskid the-taskID-of-the-process-you-want-details 
-                       -u GO-user 
-./datastager.py out cancel --taskid the-taskID-of-the-process-you-want-to-cancel 
-                       -u GO-user 
-    """
+    with open("examples", 'r') as examples_file:
+        print examples_file.read()
     sys.exit(0)
 
 ##################################################################################
@@ -580,7 +567,7 @@ def main(arguments=None):
 # Top-level parser
     parser = argparse.ArgumentParser(description=" Data stager: move a bounce of data inside or outside iRODS via GridFTP. \n The -d options requires both positional arguments.", formatter_class=RawTextHelpFormatter,add_help=True)
     parser.add_argument("-e", "--example", 
-            help="a longer description and some usage examples (invoke with \"datastager.py in pid -d\")", 
+            help="a longer description and some usage examples (invoke with \"datastager.py in pid -e\")", 
             action="store_true") # Examples
     parser.add_argument("--verbose", 
             help="more informations at run time", 
@@ -755,8 +742,7 @@ def main(arguments=None):
     else: print "The variable ipath must be setted in "+cfg_file
 
 # Invoke the detailed help if required
-    if arguments.example:
-        example()
+    if arguments.example: example()
 
 ##################################################################################
 # Start the execution

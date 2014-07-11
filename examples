@@ -1,34 +1,64 @@
 ##################################################################################
-# Stage out
-##################################################################################
-
-./datastager.py out seed -p /CINECA01/home/cin_staff/gmariani/testGO/CINECA01/home/EUDAT_EPOS/EPOSReplica/archive/ -y 2008 -n IV -s CAFR -c HHE -u cin0641a --ss cinecaRepoSingl --ds GSI-PLX --dd /gpfs/scratch/userinternal/cin0641a/DS-Test/
-
-./datastager.py out irods -p /CINECA/home/gmariani/testGO/logo -u cin0641a --ss irods-dev --ds GSI-PLX --dd /gpfs/scratch/userinternal/cin0641a/DS-Test/
-
-./datastager.py out url --url irods://data.repo.cineca.it:1247/CINECA01/home/EUDAT_EPOS/EPOSReplica/archive/2008/IV/CAFR/HHE.D/IV.CAFR..HHE.D.2008.239 -u cin0641a --ds GSI-PLX --dd /gpfs/scratch/userinternal/cin0641a/DS-Test/
-
-./datastager.py out url -UF /home/jack/CINECA/SVN/EUDAT/Sandbox/Data-Staging/Island2/url.file.example -u cin0641a --ds GSI-PLX --dd /gpfs/scratch/userinternal/cin0641a/DS-Test/
-
-./datastager.py out pid --pid 11100/00000168-8ded-11e2-8685-e41f13eb41b2 -u cin0641a --ds GSI-PLX --dd /gpfs/scratch/userinternal/cin0641a/DS-Test/
-
-./datastager.py out pid -PF /home/jack/CINECA/SVN/EUDAT/Sandbox/Data-Staging/Island2/pid.file.example -u cin0641a --ds GSI-PLX --dd /gpfs/scratch/userinternal/cin0641a/DS-Test/
-
-
-##################################################################################
 # Stage in
 ##################################################################################
 
-./datastager.py in path -u cin0641a --ss GSI-PLX --sd /gpfs/scratch/userinternal/cin0641a/DS-Test/ -p file.example --ds cinecaRepoSingl --dd  /CINECA01/home/cin_staff/gmariani/testPID/
+ ./datastager.py in -h
+  
+ ./datastager.py -c datastager.cfg 
+                 in issue 
+                 -pF path.file 
+                 --ss nb-mariani 
+                 --sd /home/jack/test 
+                 --ds irods-dev 
+                 --dd /CINECA/home/gmariani/testPID/san
 
-./datastager.py in path -u cin0641a --ss GSI-PLX --sd /gpfs/scratch/userinternal/cin0641a/DS-Test/ -pF /home/jack/CINECA/SVN/EUDAT/Sandbox/Data-Staging/Island2/task.file.example --ds cinecaRepoSingl --dd  /CINECA01/home/cin_staff/gmariani/testPID/
+ ./datastager.py --verbose 
+                 in pid 
+                 -h
 
-./datastager.py in pid -u cin0641a --taskid c9d138be-ab56-11e2-97d0-123139404f2e
+ ./datastager.py --verbose 
+                 in pid 
+                 -t 1b7684e6-0847-11e4-b58a-12313940394d
 
+ ./datastager.py in cancel -h
 
+ ./datastager.py in cancel -t a0011dc6-c0c5-11e3-b466-22000a971261
+
+ ./datastager.py in details -t a0011dc6-c0c5-11e3-b466-22000a971261
+
+#################################################################################
+# Stage out
 ##################################################################################
-# Stage in and out
-##################################################################################
 
-./datastager.py in details -u cin0641a --taskid 38648362-4de1-11e3-9a00-12313d2005b7
-./datastager.py in cancel -u cin0641a --taskid 38648362-4de1-11e3-9a00-12313d2005b7
+ ./datastager.py out -h
+
+ ./datastager.py out issue -h
+
+ ./datastager.py out issue 
+                 --ds nb-mariani 
+                 --dd /home/jack/test/dest/ 
+                 pid 
+                 -P 847/0b830226-074d-11e4-a802-0024e845a970
+
+ ./datastager.py out issue 
+                 --ds nb-mariani 
+                 --dd /home/jack/test/dest/ 
+                 irods 
+                 -h 
+
+ ./datastager.py out issue 
+                 --ds nb-mariani 
+                 --dd /home/jack/test/dest/ 
+                 irods 
+                 -p /CINECA/home/gmariani/testPID/san/test.bash 
+                 --ss irods-dev
+
+ ./datastager.py out issue 
+                 --ds nb-mariani 
+                 --dd /home/jack/test/dest/ 
+                 url 
+                 -UF url.file 
+
+ ./datastager.py out cancel -t a0011dc6-c0c5-11e3-b466-22000a971261
+
+ ./datastager.py out details -t a0011dc6-c0c5-11e3-b466-22000a971261
