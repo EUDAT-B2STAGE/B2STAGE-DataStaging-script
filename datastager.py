@@ -568,10 +568,12 @@ def main(arguments=None):
         arguments = sys.argv
 # Top-level parser
     parser = argparse.ArgumentParser(description=" Data stager: move a bounce of data inside or outside iRODS via GridFTP. \n The -d options requires both positional arguments.", formatter_class=RawTextHelpFormatter,add_help=True)
+    parser.add_argument('-V', '--version', action='version',                    
+                    version="%(prog)s version 3.1")
     parser.add_argument("-e", "--example", 
             help="a longer description and some usage examples (invoke with \"datastager.py in pid -e\")", 
             action="store_true") # Examples
-    parser.add_argument("--verbose", 
+    parser.add_argument("-v", "--verbose", 
             help="more informations at run time", 
             action="store_true")
     parser.add_argument("--ipath", 
