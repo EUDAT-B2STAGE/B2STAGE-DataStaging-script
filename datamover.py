@@ -130,14 +130,16 @@ def mover(username, src_site, dst_site, dst_dir):
     # To save the task_id for further check could be useful.
     #wait_for_task(task_id)
     max_wait = 10*1
-    if wait_for_task(task_id,max_wait):
-        print " Task %s is still under process " % (task_id)
+    waiting = True
+    if waiting: 
+        print "Task %s is still under process..." % (task_id)
         oldstdout=sys.stdout
         sys.stdout = open(os.devnull,'w')
         display_tasksummary(); print
         sys.stdout = oldstdout # enable output
         #display_task(task_id); print
         #display_ls("cin0641a#GSI-PLX"); print
+        waiting=wait_for_task(task_id,max_wait)
     print "=== Exiting ==="
     #display_tasksummary(); print
     print "The task ID for this operation is: "+task_id; print
@@ -446,6 +448,7 @@ def wait_for_task(task_id, timeout=-1):
 
     if status != "ACTIVE":
         print "Task %s complete!" % task_id
+        print "It completed before %d seconds" % timeout
         return True
     else:
         print "Task still not complete after %d seconds" % timeout

@@ -12,7 +12,6 @@ from threading import Thread
 
 import datamover
 
-
 ##################################################################################
 # Create a progress bar... or weel
 ##################################################################################
@@ -92,7 +91,7 @@ def argument_parser(arguments):
         print "The transfer activity corresponding to task %s is going to be cancelled." % arguments.taskid
         api = None
         global stop
-        stop=True
+        stop = True
         time.sleep(0.2)
         inurllist, outurllist, destendpoint = datamover.canceltask(str(arguments.user), str(arguments.taskid))
 # Details of the transfer
@@ -100,7 +99,7 @@ def argument_parser(arguments):
         print "The transfer activity corresponding to task %s follows." % arguments.taskid 
         api = None
         global stop
-        stop=True
+        stop = True
         time.sleep(0.2)
         #urlendpoint = datamover.defineurlendpoint(str(arguments.user))
         #print urlendpoint
@@ -130,6 +129,8 @@ def argument_parser(arguments):
                 sys.exit(1)
             if arguments.rmode == "DSSfile":
                 if arguments.verbose: print "Using .DSSfile"
+                stop = True
+                getDSSfile(arguments,arguments.dssfiledefserver,[arguments.dssfiledefserver])
                 arguments.src_site=DSSfile_pidsource(arguments)
             elif arguments.rmode == "icommands":
                 if arguments.verbose: print "Using icommands"
@@ -192,24 +193,7 @@ def argument_parser(arguments):
                 fo = open("pid.file", "w").close
 # Create and start the thread list to call iPIDfromURL in parallel
                 if arguments.rmode == "DSSfile":
-                    if arguments.verbose: 
-                        print "The list of the corresponding PID is going to be saved in DSSfile."
-                        print "Retrieving "+str(arguments.dssfilepath) +" via GridFTP"
-                        print "from "+str(endpoint) +" that is "+str(destendpoint[0])
-                    file_list=[]
-                    file_list.append(arguments.dssfilepath)
-                    json_results=json.dumps(file_list)
-                    fo = open("json_file", "w")
-                    fo.write(json_results)
-                    fo.close()
-                    if arguments.verbose: 
-                        print "Transfer parameters: "
-                        print str(arguments.user)
-                        print str(destendpoint[0])
-                        print str(arguments.gclocalhost)
-                        print str(os.getcwd())
-                    datamover.mover(str(arguments.user), str(destendpoint[0]),
-                            str(arguments.gclocalhost), str(os.getcwd()))
+                    getDSSfile(arguments,endpoint,destendpoint)
                     with open('.DSSfile', mode='r') as infile:
                         reader = csv.reader(infile,)
                         DSSlist = {rows[0]:rows[1] for rows in reader if len(rows) == 2}
@@ -246,6 +230,27 @@ def full_exit(message):
     print ""
     print message
     sys.exit(1)
+
+# Get .DSSfile locally                    
+def getDSSfile(arguments,endpoint,destendpoint):
+    if arguments.verbose: 
+        print "The list of the corresponding PID is going to be saved in DSSfile."
+        print "Retrieving "+str(arguments.dssfilepath) +" via GridFTP"
+        print "from "+str(endpoint) +" that is "+str(destendpoint[0])
+    file_list=[]
+    file_list.append(arguments.dssfilepath)
+    json_results=json.dumps(file_list)
+    fo = open("json_file", "w")
+    fo.write(json_results)
+    fo.close()
+    if arguments.verbose: 
+        print "Transfer parameters: "
+        print str(arguments.user)
+        print str(destendpoint[0])
+        print str(arguments.gclocalhost)
+        print str(os.getcwd())
+    datamover.mover(str(arguments.user), str(destendpoint[0]),
+            str(arguments.gclocalhost), str(os.getcwd()))
 
 # Return y as an argument for iRODS in wich a is the variable and b the value
 # such as: "*url=\"irods://server:port/Zone/path/file\""
@@ -568,6 +573,8 @@ def example():
 # Main program
 ##################################################################################
 def main(arguments=None):
+    global kill
+    global stop
     if arguments is None:
         arguments = sys.argv
 # Top-level parser
@@ -646,7 +653,7 @@ def main(arguments=None):
             help="the GridFTP src directory", action="store", 
             dest="src_dir", default="/~/")
     subparser_in_issue.add_argument("--ds", 
-            help="the GridFTP dst server as identified by its GO endpoint name", 
+            help="the GridFTP dst server identified by its GO endpoint name", 
             action="store", dest="dst_site")
     subparser_in_issue.add_argument("--dd", 
             help="the GridFTP dst directory", 
@@ -657,6 +664,9 @@ def main(arguments=None):
     subparser_in_pid.add_argument("-RM", "--resolve-mode", 
             help="the way you resolve for source file: iRODS or DSSfile", 
             action="store", dest="rmode")
+    subparser_in_pid.add_argument("-DDS", "--dssfile-default-server", 
+            help="the GO endpoint you want to retrieve DSSfile from", 
+            action="store", dest="dssfiledefserver")
     subparser_in_pid.add_argument("-DF", "--dssfile", 
             help="the full iRODS path of DSSfile", 
             action="store", dest="dssfilepath")
@@ -709,6 +719,9 @@ def main(arguments=None):
     subparser_out_issue_pid.add_argument("-RM", "--resolve-mode", 
             help="the way you resolve for source file: iRODS or DSSfile", 
             action="store", dest="rmode")
+    subparser_out_issue_pid.add_argument("-DDS", "--dssfile-default-server", 
+            help="the GO endpoint you want to retrieve DSSfile from", 
+            action="store", dest="dssfiledefserver")
     subparser_out_issue_pid.add_argument("-DF", "--dssfile", 
             help="the full iRODS path of DSSfile", 
             action="store", dest="dssfilepath")
@@ -724,6 +737,9 @@ def main(arguments=None):
     subparser_out_issue_url.add_argument("-RM", "--resolve-mode", 
             help="the way you resolve for source file: iRODS or DSSfile", 
             action="store", dest="rmode")
+    subparser_out_issue_url.add_argument("-DDS", "--dssfile-default-server", 
+            help="the GO endpoint you want to retrieve DSSfile from", 
+            action="store", dest="dssfiledefserver")
     subparser_out_issue_url.add_argument("-DF", "--dssfile", 
             help="the full iRODS path of DSSfile", 
             action="store", dest="dssfilepath")
@@ -740,6 +756,9 @@ def main(arguments=None):
     subparser_out_issue_irods.add_argument("-RM", "--resolve-mode", 
             help="the way you resolve for source file: iRODS or DSSfile", 
             action="store", dest="rmode")
+    subparser_out_issue_irods.add_argument("-DDS", "--dssfile-default-server", 
+            help="the GO endpoint you want to retrieve DSSfile from", 
+            action="store", dest="dssfiledefserver")
     subparser_out_issue_irods.add_argument("-DF", "--dssfile", 
             help="the full iRODS path of DSSfile", 
             action="store", dest="dssfilepath")
@@ -784,8 +803,8 @@ def main(arguments=None):
 # Check if the proxy is available and ready
     check_proxy(arguments)
 
-    global kill
-    global stop
+    #global kill
+    #global stop
 
     kill = False      
     stop = False
