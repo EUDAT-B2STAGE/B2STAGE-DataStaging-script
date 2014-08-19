@@ -91,15 +91,20 @@ def argument_parser(arguments):
     if arguments.action=="cancel":
         print "The transfer activity corresponding to task %s is going to be cancelled." % arguments.taskid
         api = None
+        global stop
+        stop=True
+        time.sleep(0.2)
         inurllist, outurllist, destendpoint = datamover.canceltask(str(arguments.user), str(arguments.taskid))
 # Details of the transfer
     if arguments.action=="details":
         print "The transfer activity corresponding to task %s follows." % arguments.taskid 
         api = None
+        global stop
+        stop=True
+        time.sleep(0.2)
         #urlendpoint = datamover.defineurlendpoint(str(arguments.user))
         #print urlendpoint
         datamover.detailsoftask(str(arguments.user), str(arguments.taskid))
-        full_exit("")
 # Stage out
     if arguments.direction=="out":
         if arguments.sub_action == "irods":
@@ -119,7 +124,7 @@ def argument_parser(arguments):
         elif arguments.sub_action == "pid":
             if arguments.pid and arguments.pidfile:
                 print "Only one between -P and -PF is allowed!"
-                sys.exit(1)
+                full_exit("Done!")
             if not arguments.rmode:
                 print "The rmode (-m) is mandatory!"
                 sys.exit(1)
@@ -130,17 +135,16 @@ def argument_parser(arguments):
                 if arguments.verbose: print "Using icommands"
                 arguments.src_site=pidsource(arguments)
                 if arguments.verbose: print "Source end-point: "+arguments.src_site
-                #sys.exit(1) 
             else:
                 print "You are staging out so you can only specify iRODS or PID or URL!"
-                sys.exit(1)
+                full_exit("Done!")
 # Stage in 
     if arguments.direction == "in":
         if arguments.action == "issue":
             if arguments.path:
                 if arguments.pathfile:
                     print "Only one between -p and -pF is allowed!"
-                    sys.exit(1)
+                    full_exit("Done!")
                 print "You are staging in so save the taskID in order to know the PID(s)."
                 file_list=[]
                 file_list.append(arguments.src_dir+"/"+arguments.path)
@@ -175,7 +179,7 @@ def argument_parser(arguments):
                 #print destendpoint
                 if not all_same(destendpoint):
                     print "All the pid should be mapped to the same GO endpoint."
-                    sys.exit(1)
+                    full_exit("Done!")
                 urlendpoint = datamover.defineurlendpoint(str(arguments.user))
                 #print urlendpoint
                 for url, ep in urlendpoint.items():
@@ -269,7 +273,7 @@ def DSSfileURLfromPID(arguments,argument):
     f.close()
     if not strings:
         print "The PID "+argument+" is not in .DSSfile"
-        sys.exit(1)
+        full_exit("Done!")
     #print strings[0]    
     url = strings[0].split(',')
     #print url[0]
@@ -294,7 +298,7 @@ def DSSfilePIDfromURL(arguments,argument):
     f.close()
     if not strings:
         print "The URL "+argument+" is not in .DSSfile"
-        sys.exit(1)
+        full_exit("Done!")
     #print strings[0]    
     pid = strings[0].split(',')
     #print url[0]
@@ -352,7 +356,7 @@ def jsonformatter(arguments):
             endpoint.append(urlendpoint[url])
         except:
             print "The server "+url+" is not mapped to a GO enpoint in datastagerconfig" 
-            sys.exit(0)
+            full_exit("Done!")
         #print url
         #print path
         #print endpoint
@@ -394,10 +398,10 @@ def irodssource(arguments):
         jsonlist.close
     else: 
         print "You selected irods so one between path and pathFile is required"
-        sys.exit(1)
+        full_exit("Done!")
     if arguments.user is None:
         print " The username is mandatory! "
-        sys.exit(1)
+        full_exit("Done!")
 
 # Write to json_file (via jsonformatter) the list of url for the given dest endpoint. 
 def pidsource(arguments):
@@ -558,7 +562,7 @@ def DSSfile_urlsource(arguments):
 def example():
     with open("examples", 'r') as examples_file:
         print examples_file.read()
-    sys.exit(0)
+    full_exit("Done!")
 
 ##################################################################################
 # Main program
@@ -567,7 +571,7 @@ def main(arguments=None):
     if arguments is None:
         arguments = sys.argv
 # Top-level parser
-    parser = argparse.ArgumentParser(description=" Data stager: move a bounce of data inside or outside iRODS via GridFTP. \n The -d options requires both positional arguments.", formatter_class=RawTextHelpFormatter,add_help=True)
+    parser = argparse.ArgumentParser(description=" Data stager: move a bounce of data inside or outside iRODS via GridFTP. \n The -e options requires both positional arguments.", formatter_class=RawTextHelpFormatter,add_help=True)
     parser.add_argument('-V', '--version', action='version',                    
                     version="%(prog)s version 3.1")
     parser.add_argument("-e", "--example", 
@@ -636,13 +640,13 @@ def main(arguments=None):
             help="a file containing the path of your file", 
             action="store", dest="pathfile")
     subparser_in_issue.add_argument("--ss", 
-            help="the GridFTP src server as GO endpoint", action="store", 
+            help="the GridFTP src server identified by its GO endpoint name", action="store", 
             dest="src_site")
     subparser_in_issue.add_argument("--sd", 
             help="the GridFTP src directory", action="store", 
             dest="src_dir", default="/~/")
     subparser_in_issue.add_argument("--ds", 
-            help="the GridFTP dst server as GO endpoint", 
+            help="the GridFTP dst server as identified by its GO endpoint name", 
             action="store", dest="dst_site")
     subparser_in_issue.add_argument("--dd", 
             help="the GridFTP dst directory", 
@@ -743,11 +747,11 @@ def main(arguments=None):
             help="the local Globus Connect endpoint", 
             action="store", dest="gclocalhost")
     subparser_out_issue_irods.add_argument("--ss", 
-            help="the GridFTP src server as GO endpoint", 
+            help="the GridFTP src server identified by its GO endpoint name", 
             action="store", dest="src_site", required="true")
 #issue -> destination
     subparser_out_issue.add_argument("--ds", 
-            help="the GridFTP dst server as GO endpoint", 
+            help="the GridFTP dst server identified by its GO endpoint name", 
             action="store", dest="dst_site", required="true")
     subparser_out_issue.add_argument("--dd", 
             help="the GridFTP dst directory", 
