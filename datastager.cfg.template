@@ -9,3 +9,7 @@ src_site = GO-endpoint-A
 src_dir  = ~/
 dst_site = GO-endpoint-B
 dst_dir  = ~/
+
+gclocalhost=GC-endpoint
+DSSfilePath=/irods-path/to/.DSSfile
+dssfiledefserver=Default-GO-endpoint-for-DSSfile
