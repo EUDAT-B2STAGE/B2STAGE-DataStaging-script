@@ -1,15 +1,34 @@
 [Defaults]
-user =  username
-cert =  ~/.globus/usercert.pem
-key  =  ~/.globus/userkey.pem
-rmode=  DSSfile
-iPATH=  /path/to/icommands/bin/
-
-src_site = GO-endpoint-A
-src_dir  = ~/
-dst_site = GO-endpoint-B
-dst_dir  = ~/
-
-gclocalhost=GC-endpoint
-DSSfilePath=/irods-path/to/.DSSfile
-dssfiledefserver=Default-GO-endpoint-for-DSSfile
+############################################################################
+# User identity variables
+############################################################################
+user        = cin0641a
+cert        = ~/.globus/usercert.pem
+key         = ~/.globus/userkey.pem
+certdir     = ~/.globus/certificates
+############################################################################
+# Transfer technology variables
+############################################################################
+rmode           =DSSfile
+#rmode           =icommands
+ipath           =/home/jack/CINECA/GridTools/iRODS/iRODS/clients/icommands/bin/
+DSSfilePath     =/CINECA01/home/EUDAT_STAFF/Aleph_Test/.DSSfile
+dssfiledefserver=Repo
+############################################################################
+# Transfer technology variables
+############################################################################
+src_site    = None
+src_dir     = ~/
+dst_site    = None
+dst_dir     = ~/
+gclocalhost = nb-mariani
+############################################################################
+# Other variables
+############################################################################
+taskid      = None
+sub_action  = None
+action      = None
+direction   = None
+path        = None
+pathfile    = None
+verbose     = None

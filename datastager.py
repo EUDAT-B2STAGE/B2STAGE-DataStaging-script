@@ -10,6 +10,9 @@ import string,re,csv
 import threading
 from threading import Thread
 
+import cmd                                                        
+import pprint
+
 import datamover
 
 ##################################################################################
@@ -18,29 +21,29 @@ import datamover
 class progress_bar_loading(threading.Thread):
 
     def run(self):
-            global stop
-            global kill
-            print 'Loading....  ',
-            sys.stdout.flush()
-            i = 0
-            while stop != True:
-                    if (i%4) == 0: 
-                    	sys.stdout.write('\b/')
-                    elif (i%4) == 1: 
-                    	sys.stdout.write('\b-')
-                    elif (i%4) == 2: 
-                    	sys.stdout.write('\b\\')
-                    elif (i%4) == 3: 
-                    	sys.stdout.write('\b|')
+        global stop
+        global kill
+        print 'Loading....  ',
+        sys.stdout.flush()
+        i = 0
+        while stop != True:
+                if (i%4) == 0: 
+                	sys.stdout.write('\b/')
+                elif (i%4) == 1: 
+                	sys.stdout.write('\b-')
+                elif (i%4) == 2: 
+                	sys.stdout.write('\b\\')
+                elif (i%4) == 3: 
+                	sys.stdout.write('\b|')
 
-                    sys.stdout.flush()
-                    time.sleep(0.2)
-                    i+=1
-            if kill == True: 
-            	print '\b\b\b\b ABORT!'
-            #else: 
-                #print '\b\bdone!'
-                #print '\n'
+                sys.stdout.flush()
+                time.sleep(0.2)
+                i+=1
+        if kill == True: 
+        	print '\b\b\b\b ABORT!'
+        #else: 
+            #print '\b\bdone!'
+            #print '\n'
 
 ##################################################################################
 # Check for a local x509 proxy
@@ -83,22 +86,163 @@ def check_proxy(arguments):
     print ""
 
 ##################################################################################
+# Enter the interactive mode
+##################################################################################
+class DSS(cmd.Cmd):                                          
+    def __init__(self, intro="Demo of pyton cli", prompt="\001\033[1m\033[1;32m\002DSS >\001\033[0m\002 "):         
+        """Simple command processor."""
+        global arguments
+        cmd.Cmd.__init__(self)        
+        self.DIRECTIONS  = [ 'in', 'out' ]
+        self.ACTIONS     = [ 'cancel', 'details', 'issue' ]
+        self.SUB_ACTIONS = [ 'irods', 'url', 'pid' ]
+        self.intro=intro              
+        self.prompt=prompt            
+        self.doc_header="\033[94mEUDAT DSS (type help <topic>):\033[0m"
+
+        try: 
+            if arguments: pass
+        except:
+        # Top-level parser
+            parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter,add_help=True)
+            parser.add_argument('-I', '--interactive',                     
+                    help="Open the DSInteractiveShell",
+                    action="store_true")
+            #parser.add_argument("-e", "--example", 
+                    #help="a longer description and some usage examples (invoke with \"datastager.py in pid -e\")", 
+                    #action="store_true") # Examples
+            #parser.add_argument("-v", "--verbose", 
+                    #help="more informations at run time", 
+                    #action="store_true")
+            #parser.add_argument("--ipath", 
+                    #help="your icommands path", 
+                    #action="store")
+        #config file
+            # Turn off help, so we print all options in response to -h
+            parser_cfg_file = argparse.ArgumentParser(add_help=False)
+            parser_cfg_file.add_argument("-c", "--cfg_file",
+                            help="Specify config file", 
+                            metavar="FILE", default="datastager.cfg")
+            arguments, from_file_args = parser_cfg_file.parse_known_args()    
+            if arguments.cfg_file:
+                print "Reading config file..."
+                config = ConfigParser.SafeConfigParser()
+                config.read([arguments.cfg_file])
+                defaults = dict(config.items("Defaults"))
+                #print defaults
+            else:
+                defaults = { "option":"default" }
+        #
+        # Top-level credentials    
+        #
+            parser.set_defaults(**defaults)
+            arguments = parser.parse_args(from_file_args)
+
+    def emptyline(self):                                        
+        pass                                                  
+    def do_end(self, args):                                     
+        return True                                           
+    def help_end(self):                                   
+        print("End session")                                  
+    do_EOF = do_end                                             
+    help_EOF = help_end                                         
+    def do_quit(self, args):                                    
+        return True                                           
+    def help_quit(self):                                  
+        print("Quit session")                                 
+    def precmd(self, line):                                     
+        newline=line.strip()                                  
+        is_cmt=newline.startswith('#')                        
+        if is_cmt:                                            
+            return ('')                                     
+        return (line)                                         
+    def do_set(self, args):
+        newField=args.split(' ')
+        setattr(arguments, str(newField[0]), str(newField[1]))
+        print str(newField[0])+" set to "+getattr(arguments, str(newField[0]))
+    def help_set(self):
+        print('Set variables as "set <varname> <varvalue>"')
+    def do_print(self, args):
+        if args == "globals":
+            pprint.pprint(globals())
+        else:
+            d=vars(arguments)
+            for keys,values in d.items():
+                print(keys+": "+str(values))
+    def help_print(self):
+        print("Print the values of all defined variables (locals or globals)")
+            
+    def do_direction(self, args):                                  
+        if args and args in self.DIRECTIONS:
+            arguments.direction = '%s' % args
+        else: print "Invalid!"
+    def complete_direction(self, text, line, begidx, endidx):
+        if not text: completions = self.DIRECTIONS[:]
+        else: completions = [ f for f in self.DIRECTIONS if f.startswith(text) ]
+        return completions    
+    def help_direction(self):                                
+        print("Set the stage direction")   
+    def do_action(self, args):                                  
+        if args and args in self.ACTIONS:
+            arguments.action = '%s' % args
+        else: print "Invalid!"
+    def complete_action(self, text, line, begidx, endidx):
+        if not text: completions = self.ACTIONS[:]
+        else: completions = [ f for f in self.ACTIONS if f.startswith(text) ]
+        return completions    
+    def help_action(self):                                
+        print("Set the stage action")   
+    def do_sub_action(self, args):                                  
+        if args and args in self.SUB_ACTIONS:
+            arguments.sub_action = '%s' % args
+        else: print "Invalid!"
+    def complete_sub_action(self, text, line, begidx, endidx):
+        if not text: completions = self.SUB_ACTIONS[:]
+        else: completions = [ f for f in self.SUB_ACTIONS if f.startswith(text) ]
+        return completions    
+    def help_sub_action(self):                                
+        print("Set the stage sub-action")   
+    def do_taskid(self, args):                                  
+        arguments.taskid = args
+    def help_taskid(self):                                
+        print("Set the taskid")   
+
+
+  #arguments.direction=="out"/"in"
+  #arguments.action=="cancel"/"details"/"issue"
+  #arguments.sub_action == "irods"/"url"/"pid"
+  #arguments.path/arguments.pathfile:
+
+    def do_execute(self, args):
+# Check if the proxy is available and ready
+        check_proxy(arguments)
+        argument_parser(arguments)
+    def help_execute(self):
+        print "We go!" 
+
+
+##################################################################################
 # Parse the argument and, in case, create the transfer file
 ##################################################################################
 def argument_parser(arguments):
 # Cancel the transfer
+    global stop
     if arguments.action=="cancel":
+        try: 
+            if arguments.taskid: pass
+        except: full_exit("You did not provide the taskid!")
         print "The transfer activity corresponding to task %s is going to be cancelled." % arguments.taskid
         api = None
-        global stop
         stop = True
         time.sleep(0.2)
         inurllist, outurllist, destendpoint = datamover.canceltask(str(arguments.user), str(arguments.taskid))
 # Details of the transfer
     if arguments.action=="details":
+        try: 
+            if arguments.taskid: pass
+        except: full_exit("You did not provide the taskid!")
         print "The transfer activity corresponding to task %s follows." % arguments.taskid 
         api = None
-        global stop
         stop = True
         time.sleep(0.2)
         #urlendpoint = datamover.defineurlendpoint(str(arguments.user))
@@ -581,6 +725,9 @@ def main(arguments=None):
     parser = argparse.ArgumentParser(description=" Data stager: move a bounce of data inside or outside iRODS via GridFTP. \n The -e options requires both positional arguments.", formatter_class=RawTextHelpFormatter,add_help=True)
     parser.add_argument('-V', '--version', action='version',                    
                     version="%(prog)s version 3.1")
+    parser.add_argument('-I', '--interactive',                     
+            help="Open the DSInteractiveShell",
+            action="store_true")
     parser.add_argument("-e", "--example", 
             help="a longer description and some usage examples (invoke with \"datastager.py in pid -e\")", 
             action="store_true") # Examples
@@ -831,4 +978,9 @@ def main(arguments=None):
 # If called directly
 ##################################################################################
 if __name__ == '__main__':
-    main()
+
+    if "--interactive" in sys.argv or "-I" in sys.argv:
+        t_cli=DSS("\t\001\033[1m\033[1;31m\002This is B2STAGE\001\033[0m\002\n\t\001\033[1m\033[32m\002Welcome to Data Staging Script\001\033[0m\002\n\033[94mPlease type help for a set of available commands.\033[0m")   
+        t_cli.cmdloop()
+    else:
+        main()
