@@ -88,10 +88,14 @@ def check_proxy(arguments):
 ##################################################################################
 # Enter the interactive mode
 ##################################################################################
-class DSS(cmd.Cmd):                                          
+class InteractiveDSS(cmd.Cmd):                                          
     def __init__(self, intro="Demo of pyton cli", prompt="\001\033[1m\033[1;32m\002DSS >\001\033[0m\002 "):         
         """Simple command processor."""
         global arguments
+        global interactivity
+        interactivity=True
+        datamover.globality(interactivity)
+
         cmd.Cmd.__init__(self)        
         self.DIRECTIONS  = [ 'in', 'out' ]
         self.ACTIONS     = [ 'cancel', 'details', 'issue' ]
@@ -108,16 +112,7 @@ class DSS(cmd.Cmd):
             parser.add_argument('-I', '--interactive',                     
                     help="Open the DSInteractiveShell",
                     action="store_true")
-            #parser.add_argument("-e", "--example", 
-                    #help="a longer description and some usage examples (invoke with \"datastager.py in pid -e\")", 
-                    #action="store_true") # Examples
-            #parser.add_argument("-v", "--verbose", 
-                    #help="more informations at run time", 
-                    #action="store_true")
-            #parser.add_argument("--ipath", 
-                    #help="your icommands path", 
-                    #action="store")
-        #config file
+        # Load the config file
             # Turn off help, so we print all options in response to -h
             parser_cfg_file = argparse.ArgumentParser(add_help=False)
             parser_cfg_file.add_argument("-c", "--cfg_file",
@@ -207,18 +202,13 @@ class DSS(cmd.Cmd):
     def help_taskid(self):                                
         print("Set the taskid")   
 
-
-  #arguments.direction=="out"/"in"
-  #arguments.action=="cancel"/"details"/"issue"
-  #arguments.sub_action == "irods"/"url"/"pid"
-  #arguments.path/arguments.pathfile:
-
     def do_execute(self, args):
-# Check if the proxy is available and ready
+        # Check if the proxy is available and ready
         check_proxy(arguments)
+        # Star the real execution
         argument_parser(arguments)
     def help_execute(self):
-        print "We go!" 
+        print "Execute the script as defined by you!" 
 
 
 ##################################################################################
@@ -719,6 +709,10 @@ def example():
 def main(arguments=None):
     global kill
     global stop
+    global interactivity
+    interactivity=None
+    datamover.globality(interactivity)
+
     if arguments is None:
         arguments = sys.argv
 # Top-level parser
@@ -935,7 +929,7 @@ def main(arguments=None):
 #
 
     arguments = parser.parse_args(from_file_args)
-    if arguments.verbose: print arguments
+    if arguments.verbose and arguments.verbose != "None": print arguments
     if arguments.ipath: ipath=arguments.ipath
     else: print "The variable ipath must be setted in "+cfg_file
 
@@ -978,9 +972,8 @@ def main(arguments=None):
 # If called directly
 ##################################################################################
 if __name__ == '__main__':
-
     if "--interactive" in sys.argv or "-I" in sys.argv:
-        t_cli=DSS("\t\001\033[1m\033[1;31m\002This is B2STAGE\001\033[0m\002\n\t\001\033[1m\033[32m\002Welcome to Data Staging Script\001\033[0m\002\n\033[94mPlease type help for a set of available commands.\033[0m")   
+        t_cli=InteractiveDSS("\t\001\033[1m\033[1;31m\002This is B2STAGE\001\033[0m\002\n\t\001\033[1m\033[32m\002Welcome to Data Staging Script\001\033[0m\002\n\033[94mPlease type help for a set of available commands.\033[0m")   
         t_cli.cmdloop()
     else:
         main()

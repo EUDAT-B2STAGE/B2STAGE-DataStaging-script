@@ -31,6 +31,10 @@ from globusonline.transfer.api_client import ActivationRequirementList
 from globusonline.transfer.api_client import TransferAPIClient
 from globusonline.transfer.api_client import x509_proxy
 
+def globality(arg):
+    global interactivity
+    interactivity=arg
+
 # Exit from the weel :-)
 def full_exit(message):
     global stop
@@ -155,6 +159,7 @@ def canceltask(username, task_id):
     """
     activer=[username,"-c",os.getcwd()+"/credential-"+username+".pem"]
     global api
+    global interactivity
     api, _ = create_client_from_args(activer)
 
     oldstdout=sys.stdout
@@ -167,10 +172,10 @@ def canceltask(username, task_id):
         status, reason, result = api.task_cancel(task_id)
         print "The cancel operation exited with the following message from GO:"
         print result["message"]; print
-        full_exit("Done!")
+        if not interactivity: full_exit("Done!")
     else:
         print "The task already succeeded"
-        full_exit("Done!")
+        if not interactivity: full_exit("Done!")
 
 # Given the username and the task_id detailsoftask prints at video some details
 # about the transfer, if it is still running. 
@@ -180,6 +185,7 @@ def detailsoftask(username, task_id):
     """
     activer=[username,"-c",os.getcwd()+"/credential-"+username+".pem"]
     global api
+    global interactivity
     api, _ = create_client_from_args(activer)
 
     oldstdout=sys.stdout
@@ -211,10 +217,10 @@ def detailsoftask(username, task_id):
         for key, value in data.iteritems():    
             print key, value; print
         print    
-        full_exit("Done!")
+        if not interactivity: full_exit("Done!")
     else:
         print "The task already succeeded"
-        full_exit("Done!")
+        if not interactivity: full_exit("Done!")
 
 # This function query GO in order to return the urlendpoint dictionary
 def defineurlendpoint(username):
