@@ -151,6 +151,12 @@ class InteractiveDSS(cmd.Cmd):
         if is_cmt:                                            
             return ('')                                     
         return (line)                                         
+    def do_shell(self, line):
+        "Run a shell command"
+        print "running shell command:", line
+        output = os.popen(line).read()
+        print output
+        self.last_output = output
     def do_set(self, args):
         newField=args.split(' ')
         setattr(arguments, str(newField[0]), str(newField[1]))
@@ -158,14 +164,17 @@ class InteractiveDSS(cmd.Cmd):
     def help_set(self):
         print('Set variables as "set <varname> <varvalue>"')
     def do_print(self, args):
-        if args == "globals":
+        if args == "global":
             pprint.pprint(globals())
         else:
             d=vars(arguments)
             for keys,values in d.items():
                 print(keys+": "+str(values))
     def help_print(self):
-        print("Print the values of all defined variables (locals or globals)")
+        print 'Print the values of all variables'
+        print 'Takes one optional argument [local|global]'
+        print
+        print 'Please check your variables before "execute"'
             
     def do_direction(self, args):                                  
         if args and args in self.DIRECTIONS:
@@ -203,6 +212,13 @@ class InteractiveDSS(cmd.Cmd):
         print("Set the taskid")   
 
     def do_execute(self, args):
+        print "You are going to "+str(arguments.action)+" a transfer" 
+        if str(arguments.action)=="issue":
+            print "for "+str(arguments.sub_action)+" so check your paths..."
+        else:
+            print "for task "+str(arguments.taskid)
+        confirmation = raw_input("Really proceed[y/n]? ")
+        if not confirmation=="y": return
         # Check if the proxy is available and ready
         check_proxy(arguments)
         # Star the real execution
@@ -221,6 +237,7 @@ def argument_parser(arguments):
         try: 
             if arguments.taskid: pass
         except: full_exit("You did not provide the taskid!")
+        if str(arguments.taskid)=="None": full_exit("You did not provide the taskid!")
         print "The transfer activity corresponding to task %s is going to be cancelled." % arguments.taskid
         api = None
         stop = True
@@ -231,6 +248,7 @@ def argument_parser(arguments):
         try: 
             if arguments.taskid: pass
         except: full_exit("You did not provide the taskid!")
+        if str(arguments.taskid)=="None": full_exit("You did not provide the taskid!")
         print "The transfer activity corresponding to task %s follows." % arguments.taskid 
         api = None
         stop = True
@@ -972,8 +990,8 @@ def main(arguments=None):
 # If called directly
 ##################################################################################
 if __name__ == '__main__':
-    if "--interactive" in sys.argv or "-I" in sys.argv:
-        t_cli=InteractiveDSS("\t\001\033[1m\033[1;31m\002This is B2STAGE\001\033[0m\002\n\t\001\033[1m\033[32m\002Welcome to Data Staging Script\001\033[0m\002\n\033[94mPlease type help for a set of available commands.\033[0m")   
+    if "--interactive" in sys.argv or "-I" in sys.argv: 
+        t_cli=InteractiveDSS("\n\t\001\033[1m\033[1;31m\002This is B2STAGE\001\033[0m\002\n\t\001\033[1m\033[32m\002Welcome to Data Staging Script\001\033[0m\002\n\n\033[94mPlease type help for a set of available commands.\033[0m\n")   
         t_cli.cmdloop()
     else:
         main()
