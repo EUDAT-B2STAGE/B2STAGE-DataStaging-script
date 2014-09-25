@@ -29,21 +29,26 @@ Requirements
 ------------
 
 * Python 2.7
-* Globus Online API
-* iRODS icommands
+* python-m2crypto 
+* Globus Online API 
+* m2.py [1]
 * grid-proxy-utils (in particular grid-proxy-init)
-* python-m2crypto (script version > 1.1)[1]
 * myproxy commands (in particular myproxy-init)
 
-[1] You also should replace the file m2.py installed with the GO API with 
-    a new one, available on the SVN (see below).
+Optional:
+* iRODS icommands
+
+[1] You should replace the file m2.py installed with the GO API.
 
 Installation
 ------------
 
-* download all the needed files (see list below) from the official SVN 
+* download all the needed files: 
+  $ git clone https://github.com/EUDAT-B2STAGE/B2STAGE-DataStaging-script.git
 * install globus online api, for example:
   $ pip install globusonline-transfer-api-client
+
+Optional:
 * configure your irods environment in order to point to the iRODS server enabled 
   with the needed rules
 
@@ -51,9 +56,7 @@ Installation
 The script consists of the following files:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* datastagerconfig.py.example template for the required (cp to) datastagerconfig.py file (script >1.1)
-* PIDselecter.r the rule which gives you the PID of a file given its URL
-* URLselecter.r the rule which gives you the URL of a file given its PID
+* datastager.cfg.template template for the required (cp to) datastager.cfg file
 
 * datastager.py the main script
 * datamover.py the script which invokes GO 
@@ -63,6 +66,10 @@ The script consists of the following files:
 * task.file.example an example of path file, i.e. a list of file names (to be used with -pF option)
 * url.file.example an example of URL file, i.e. a list of URLs (to be used with -UF option)
 * README some further informations
+
+Optional:
+* PIDselecter.r the rule which gives you the PID of a file given its URL
+* URLselecter.r the rule which gives you the URL of a file given its PID
 
 The script works as follow:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -74,24 +81,14 @@ The script works as follow:
 ** if not local activation (which requires python-m2crypto package) and uses your local proxy
 * delegate GO to do the transfer
 
-Note 1 In datastagerconfig.py, iPATH (line 1) store the the path of the icommands, 
-       like in the following line:  
-iPATH='/home/jack/CINECA/GridTools/iRODS/iRODS/clients/icommands/bin/'
-
-       In order to use datastager.py you should adapt it to your needed.
-
-Note 2 In datastagerconfig.py, urlendpoint (around line 3) lists the 
-       correspondence between GO endpoint and their url, like in the following 
-       line:  
-
-urlendpoint={'data.repo.cineca.it': "cinecaRepoSingl", 'irods-dev.cineca.it': "irods-dev"}
-       In order to use datastager.py you should insert your correspondence between 
-       GO endpoints and plain url inside or inform the developers. 
-
 Usage
 -----
 
-See datastager -h 
+See: 
+$ ./datastager.py -h 
+
+The script can run interactively if invoked as:
+$ ./datastager.py -I
 
 
 Troubleshooting
